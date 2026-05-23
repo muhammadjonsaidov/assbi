@@ -1,0 +1,26 @@
+# Build outputs
+backend/target/
+ui/target/
+frontend/dist/
+frontend/node_modules/
+
+# Python
+detection-worker/venv/
+detection-worker/__pycache__/
+detection-worker/**/__pycache__/
+detection-worker/**/*.pyc
+detection-worker/output/
+
+# Logs & runtime
+logs/
+*.log
+*.pid
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Secrets / env
+.env
+.env.*
