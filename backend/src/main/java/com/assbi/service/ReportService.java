@@ -7,12 +7,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 public class ReportService {
@@ -114,32 +117,80 @@ public class ReportService {
         return report;
     }
 
-    // ── Context string for chatbot ───────────────────────────────────────────
+    // ── Flexible chatbot context (any time range) ────────────────────────────
 
-    public String buildChatbotContext(String period) {
-        Map<String, Object> data = switch (period.toLowerCase()) {
-            case "week", "weekly", "last week", "last 7 days" -> weeklyReport();
-            case "month", "monthly", "last month", "last 30 days" -> monthlyReport();
-            default -> weeklyReport();
-        };
-
+    public String buildFlexibleContext(Instant from, Instant to, String label) {
         StringBuilder sb = new StringBuilder();
-        sb.append("Period: ").append(data.get("period")).append("\n");
-        sb.append("Total IN: ").append(data.get("total_in")).append("\n");
-        sb.append("Total OUT: ").append(data.get("total_out")).append("\n");
+        sb.append("TIME RANGE: ").append(label).append("\n");
+        sb.append("FROM: ").append(from).append("\n");
+        sb.append("TO:   ").append(to).append("\n\n");
 
-        @SuppressWarnings("unchecked")
-        Map<String, Map<String, Long>> byType =
-            (Map<String, Map<String, Long>>) data.get("by_type");
+        // Raw event counts — always accurate regardless of daily-summary lag
+        List<Object[]> counts = eventRepo.countByTypeAndDirectionBetween(from, to);
 
-        if (byType != null) {
-            byType.forEach((type, counts) ->
-                sb.append(type).append(" -> IN: ")
-                  .append(counts.getOrDefault("in", 0L))
-                  .append(", OUT: ")
-                  .append(counts.getOrDefault("out", 0L))
-                  .append("\n")
-            );
+        Map<String, Long> inMap  = new LinkedHashMap<>();
+        Map<String, Long> outMap = new LinkedHashMap<>();
+        long totalIn = 0, totalOut = 0;
+
+        for (Object[] row : counts) {
+            String type  = (String) row[0];
+            String dir   = (String) row[1];
+            long   count = ((Number) row[2]).longValue();
+            if ("IN".equals(dir))  { inMap.put(type, count);  totalIn  += count; }
+            else                   { outMap.put(type, count); totalOut += count; }
+        }
+
+        sb.append("TOTAL CROSSINGS IN:  ").append(totalIn).append("\n");
+        sb.append("TOTAL CROSSINGS OUT: ").append(totalOut).append("\n\n");
+        sb.append("BREAKDOWN BY OBJECT TYPE:\n");
+
+        Set<String> types = new LinkedHashSet<>();
+        types.addAll(inMap.keySet());
+        types.addAll(outMap.keySet());
+
+        if (types.isEmpty()) {
+            sb.append("  (no crossing events recorded in this time range)\n");
+        } else {
+            for (String type : types) {
+                sb.append("  ").append(type)
+                  .append(": IN=").append(inMap.getOrDefault(type, 0L))
+                  .append(", OUT=").append(outMap.getOrDefault(type, 0L))
+                  .append("\n");
+            }
+        }
+
+        long hours = Duration.between(from, to).toHours();
+
+        // Short range (≤48h) → hourly breakdown from raw events
+        if (hours <= 48) {
+            List<Object[]> hourly = eventRepo.hourlyBreakdown(from, to);
+            sb.append("\nHOURLY BREAKDOWN:\n");
+            if (hourly.isEmpty()) {
+                sb.append("  (no data)\n");
+            } else {
+                for (Object[] row : hourly) {
+                    sb.append("  hour=").append(row[0])
+                      .append(" type=").append(row[1])
+                      .append(" direction=").append(row[2])
+                      .append(" count=").append(row[3]).append("\n");
+                }
+            }
+        }
+
+        // Longer range (>24h) → daily breakdown from daily summaries
+        if (hours > 24) {
+            LocalDate fromDate = from.atZone(ZoneOffset.UTC).toLocalDate();
+            LocalDate toDate   = to.atZone(ZoneOffset.UTC).toLocalDate();
+            List<Object[]> daily = summaryRepo.aggregatedByDateAndType(fromDate, toDate);
+            if (!daily.isEmpty()) {
+                sb.append("\nDAILY BREAKDOWN:\n");
+                for (Object[] row : daily) {
+                    sb.append("  date=").append(row[0])
+                      .append(" type=").append(row[1])
+                      .append(" IN=").append(row[2])
+                      .append(" OUT=").append(row[3]).append("\n");
+                }
+            }
         }
 
         return sb.toString();

@@ -70,11 +70,19 @@ export default function App() {
       <div className="app-grid">
 
         {/* Top-left: live video feed */}
-        <VideoCanvas
-          active={workerRunning}
-          drawMode={drawMode}
-          onLineSent={() => setDrawMode(false)}
-        />
+        <div className="panel">
+          <div className="panel-header">
+            <span className="panel-title-text">Live Feed</span>
+            {workerRunning && <span className="live-dot" />}
+          </div>
+          <div className="panel-body">
+            <VideoCanvas
+              active={workerRunning}
+              drawMode={drawMode}
+              onLineSent={() => setDrawMode(false)}
+            />
+          </div>
+        </div>
 
         {/* Top-right: analytics & intelligence */}
         <div className="panel">

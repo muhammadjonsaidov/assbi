@@ -1,9 +1,16 @@
 import { useState, useRef, useEffect } from 'react'
 import config from '../config'
 
+const SUGGESTIONS = [
+  'How many vehicles in last hour?',
+  'Any anomalies today?',
+  'Show people count trend this week',
+  'What is peak traffic time today?',
+]
+
 export default function ChatPanel() {
   const [messages, setMessages] = useState([
-    { id: 0, who: 'info', text: 'Ask anything — "How many people entered last hour?", "Show vehicle trends this week", "Any anomalies today?"' },
+    { id: 0, who: 'info', text: 'Ask anything about crossing events, anomalies, and traffic trends.' },
   ])
   const [input,  setInput]  = useState('')
   const [busy,   setBusy]   = useState(false)
@@ -13,8 +20,7 @@ export default function ChatPanel() {
     endRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const send = async () => {
-    const msg = input.trim()
+  const send = async (msg = input.trim()) => {
     if (!msg || busy) return
     setInput('')
     setBusy(true)
@@ -51,14 +57,33 @@ export default function ChatPanel() {
     }
   }
 
+  const showSuggestions = messages.length <= 1
+
   return (
     <div className="chat-body">
       <div className="chat-messages">
         {messages.map(m => (
           <div key={m.id} className={`msg msg-${m.who}`}>{m.text}</div>
         ))}
+
+        {showSuggestions && (
+          <div className="chat-chips">
+            {SUGGESTIONS.map(s => (
+              <button
+                key={s}
+                className="chat-chip"
+                onClick={() => send(s)}
+                disabled={busy}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+
         <div ref={endRef} />
       </div>
+
       <div className="chat-input-row">
         <input
           type="text"
@@ -69,7 +94,7 @@ export default function ChatPanel() {
           placeholder="Ask about crossings, anomalies, trends…"
           disabled={busy}
         />
-        <button className="btn-send" onClick={send} disabled={busy}>
+        <button className="btn-send" onClick={() => send()} disabled={busy}>
           {busy ? '…' : 'Send'}
         </button>
       </div>

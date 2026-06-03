@@ -3,8 +3,11 @@ package com.assbi.controller;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 @RestController
@@ -18,6 +21,20 @@ public class WorkerController {
     private String workerLogFile;
 
     private Process workerProcess;
+
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, Object>> upload(@RequestParam("file") MultipartFile file) {
+        try {
+            Path uploadDir = Path.of(System.getProperty("java.io.tmpdir"), "assbi-uploads");
+            Files.createDirectories(uploadDir);
+            String safe = file.getOriginalFilename().replaceAll("[^a-zA-Z0-9._-]", "_");
+            Path dest = uploadDir.resolve(System.currentTimeMillis() + "_" + safe);
+            file.transferTo(dest);
+            return ResponseEntity.ok(Map.of("path", dest.toAbsolutePath().toString()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", e.getMessage()));
+        }
+    }
 
     @PostMapping("/start")
     public synchronized ResponseEntity<Map<String, Object>> start(@RequestParam String source) {

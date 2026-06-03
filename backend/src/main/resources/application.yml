@@ -1,4 +1,9 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 6GB
+      max-request-size: 6GB
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/assbi}
     username: ${DB_USER:assbi}
