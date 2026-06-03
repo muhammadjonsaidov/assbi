@@ -1,33 +1,45 @@
 import { useState, useEffect, useCallback } from 'react'
 import config from '../config'
 
-// ── SVG bar chart (pure, no deps) ─────────────────────────────────────────────
+// ── SVG bar chart ──────────────────────────────────────────────────────────────
 
 function BarChart({ data }) {
   if (!data.length) return <p className="hint-text">No traffic data for last 24h</p>
 
-  const maxVal  = Math.max(...data.map(d => d.total), 1)
-  const chartH  = 110
-  const n       = data.length
-  const barW    = Math.max(4, Math.floor(220 / n) - 1)
-  const totalW  = n * (barW + 1)
+  const maxVal = Math.max(...data.map(d => d.total), 1)
+  const chartH = 100
+  const n      = data.length
+  const barW   = Math.max(5, Math.floor(260 / n) - 2)
+  const totalW = n * (barW + 2)
 
   return (
     <svg
-      viewBox={`0 0 ${totalW} ${chartH + 22}`}
-      style={{ width: '100%', height: chartH + 22, display: 'block' }}
+      viewBox={`0 0 ${totalW} ${chartH + 20}`}
+      style={{ width: '100%', height: chartH + 20, display: 'block' }}
+      role="img"
+      aria-label="Hourly traffic bar chart"
     >
+      {/* Horizontal grid lines */}
+      {[0.25, 0.5, 0.75, 1].map(frac => {
+        const y = chartH - Math.round(frac * chartH)
+        return (
+          <line key={frac} x1={0} y1={y} x2={totalW} y2={y}
+            stroke="#161630" strokeWidth={1} />
+        )
+      })}
+
       {data.map((d, i) => {
         const personH  = Math.round(((d.personIn  + d.personOut)  / maxVal) * chartH)
         const vehicleH = Math.round(((d.vehicleIn + d.vehicleOut) / maxVal) * chartH)
-        const x = i * (barW + 1)
+        const x     = i * (barW + 2)
         const label = (d.hour || '').substring(11, 13)
+        const showLabel = i % Math.max(1, Math.round(n / 8)) === 0
         return (
           <g key={d.hour || i}>
-            <rect x={x} y={chartH - vehicleH}          width={barW} height={vehicleH} fill="#f97316" opacity="0.85" />
-            <rect x={x} y={chartH - vehicleH - personH} width={barW} height={personH} fill="#22c55e" opacity="0.85" />
-            {i % Math.max(1, Math.round(n / 8)) === 0 && (
-              <text x={x + barW / 2} y={chartH + 14} textAnchor="middle" fontSize="7" fill="#555">
+            <rect x={x} y={chartH - vehicleH}           width={barW} height={vehicleH} fill="#f59e0b" opacity="0.8" rx="1" />
+            <rect x={x} y={chartH - vehicleH - personH} width={barW} height={personH}  fill="#10b981" opacity="0.8" rx="1" />
+            {showLabel && (
+              <text x={x + barW / 2} y={chartH + 13} textAnchor="middle" fontSize="7" fill="#2d3a5a">
                 {label}h
               </text>
             )}
@@ -38,47 +50,47 @@ function BarChart({ data }) {
   )
 }
 
-// ── Anomaly badge ─────────────────────────────────────────────────────────────
+// ── Anomaly badge ──────────────────────────────────────────────────────────────
 
 function AnomalyBadge({ a }) {
-  const bg    = a.severity === 'HIGH' ? '#7f1d1d' : '#78350f'
-  const color = a.severity === 'HIGH' ? '#fca5a5' : '#fcd34d'
-  const hour  = (a.hour || '').substring(11, 16)
+  const cls  = a.severity === 'HIGH' ? 'anomaly-badge anomaly-high' : 'anomaly-badge anomaly-medium'
+  const hour = (a.hour || '').substring(11, 16)
   return (
-    <div style={{ background: bg, color, borderRadius: 6, padding: '6px 10px', fontSize: 12 }}>
+    <div className={cls}>
       ⚠ {a.severity} — {hour} UTC — {a.count} crossings
-      <span style={{ color: '#aaa', marginLeft: 8 }}>
+      <span style={{ color: '#4a5568', marginLeft: 8 }}>
         (avg {a.mean}, threshold {a.threshold})
       </span>
     </div>
   )
 }
 
-// ── Forecast card ─────────────────────────────────────────────────────────────
+// ── Forecast card ──────────────────────────────────────────────────────────────
 
 function ForecastCard({ f }) {
-  const trendColor = f.trend === 'increasing' ? '#22c55e'
-                   : f.trend === 'decreasing' ? '#f97316'
-                   : '#aaa'
+  const trendColor = f.trend === 'increasing' ? '#10b981'
+                   : f.trend === 'decreasing' ? '#f59e0b'
+                   : '#4a5568'
   const trendIcon  = f.trend === 'increasing' ? '↑'
                    : f.trend === 'decreasing' ? '↓'
                    : '→'
   return (
-    <div className="stat-card" style={{ textAlign: 'left', padding: '10px 12px' }}>
-      <div className="stat-label">Tomorrow's Predicted Crossings</div>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 4 }}>
-        <span style={{ fontSize: 28, fontWeight: 700, color: '#4db8ff' }}>{f.predictedTotal}</span>
-        <span style={{ color: trendColor, fontSize: 18 }}>{trendIcon} {f.trend}</span>
+    <div className="forecast-card">
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+        <span className="forecast-number">{f.predictedTotal}</span>
+        <span className="forecast-trend" style={{ color: trendColor }}>
+          {trendIcon} {f.trend}
+        </span>
       </div>
-      <div style={{ fontSize: 11, color: '#666', marginTop: 6 }}>
-        Method: {f.method} · Confidence: <span style={{ color: '#aaa' }}>{f.confidence}</span>
+      <div className="forecast-meta">
+        Method: {f.method} · Confidence: {f.confidence}
         {' '}· Based on {f.basedOnDays} days · 7-day avg: {f.historicalAvg}
       </div>
     </div>
   )
 }
 
-// ── Main panel ────────────────────────────────────────────────────────────────
+// ── Main panel ─────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPanel() {
   const [hourlyData, setHourlyData] = useState([])
@@ -111,18 +123,14 @@ export default function AnalyticsPanel() {
   }, [refresh])
 
   return (
-    <div className="tab-content">
+    <div className="analytics-body">
 
-      {/* KPI legend */}
-      <div style={{ display: 'flex', gap: 12, fontSize: 11, color: '#888' }}>
-        <span><span style={{ color: '#22c55e' }}>■</span> Person</span>
-        <span><span style={{ color: '#f97316' }}>■</span> Vehicle</span>
-        {loading && <span style={{ marginLeft: 'auto', color: '#555' }}>Refreshing…</span>}
-        <button
-          onClick={refresh}
-          style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#4db8ff',
-                   cursor: 'pointer', fontSize: 11, padding: 0 }}
-        >
+      {/* Legend + refresh */}
+      <div className="chart-legend">
+        <span><span style={{ color: '#10b981' }}>■</span> Person</span>
+        <span><span style={{ color: '#f59e0b' }}>■</span> Vehicle</span>
+        {loading && <span style={{ marginLeft: 'auto', color: '#2d3a5a' }}>Refreshing…</span>}
+        <button className="refresh-btn" onClick={refresh} style={loading ? { marginLeft: 0 } : {}}>
           ↻ Refresh
         </button>
       </div>
@@ -131,13 +139,15 @@ export default function AnalyticsPanel() {
 
       {/* Hourly bar chart */}
       <div>
-        <div className="panel-title" style={{ marginBottom: 6 }}>Hourly Traffic — Last 24h</div>
-        <BarChart data={hourlyData} />
+        <div className="section-label">Hourly Traffic — Last 24h</div>
+        <div className="chart-wrap">
+          <BarChart data={hourlyData} />
+        </div>
       </div>
 
-      {/* Anomaly alerts */}
+      {/* Anomaly detection */}
       <div>
-        <div className="panel-title" style={{ marginBottom: 6 }}>Anomaly Detection</div>
+        <div className="section-label">Anomaly Detection</div>
         {anomalies.length === 0
           ? <p className="hint-text">No anomalies in last 24h (threshold: mean + 2σ)</p>
           : anomalies.map((a, i) => <AnomalyBadge key={i} a={a} />)
@@ -146,10 +156,10 @@ export default function AnalyticsPanel() {
 
       {/* Predictive forecast */}
       <div>
-        <div className="panel-title" style={{ marginBottom: 6 }}>Predictive Analytics</div>
+        <div className="section-label">Tomorrow's Forecast</div>
         {forecast
           ? <ForecastCard f={forecast} />
-          : <p className="hint-text">Loading forecast…</p>
+          : <p className="hint-text">Insufficient historical data for forecast</p>
         }
       </div>
 

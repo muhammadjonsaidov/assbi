@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react'
-import LeftPanel from './components/LeftPanel.jsx'
-import VideoCanvas from './components/VideoCanvas.jsx'
-import RightPanel from './components/RightPanel.jsx'
+import HeaderBar     from './components/HeaderBar.jsx'
+import VideoCanvas   from './components/VideoCanvas.jsx'
+import AnalyticsPanel from './components/AnalyticsPanel.jsx'
+import ChatPanel     from './components/ChatPanel.jsx'
+import ReportsPanel  from './components/ReportsPanel.jsx'
 import config from './config'
 
 export default function App() {
   const [workerRunning, setWorkerRunning] = useState(false)
-  const [drawMode, setDrawMode] = useState(false)
+  const [drawMode,      setDrawMode]      = useState(false)
   const [stats, setStats] = useState({ personIn: 0, personOut: 0, vehicleIn: 0, vehicleOut: 0 })
 
-  // Restore worker status on mount
   useEffect(() => {
     fetch(`${config.backendUrl}/api/worker/status`)
       .then(r => r.json())
@@ -17,7 +18,6 @@ export default function App() {
       .catch(() => {})
   }, [])
 
-  // Poll live stats
   useEffect(() => {
     const poll = () => {
       fetch(`${config.backendUrl}/api/events/counts?minutes=${config.statsWindowMinutes}`)
@@ -26,7 +26,6 @@ export default function App() {
           const VEHICLE_TYPES = ['car', 'truck', 'bus', 'motorcycle']
           const sumVehicle = (dir) =>
             VEHICLE_TYPES.reduce((s, t) => s + (Number(data[`${t}_${dir}`]) || 0), 0)
-
           setStats({
             personIn:   Number(data['person_IN'])  || 0,
             personOut:  Number(data['person_OUT']) || 0,
@@ -59,33 +58,55 @@ export default function App() {
 
   return (
     <div className="app">
-      <header className="app-header">
-        <span className="app-title">ASSBI</span>
-        <span className="app-badge">Smart Surveillance BI</span>
-        <div className="worker-status">
-          <span className={`status-dot${workerRunning ? ' running' : ''}`} />
-          <span className="status-text">
-            {workerRunning ? 'Worker running' : 'Worker stopped'}
-          </span>
-        </div>
-      </header>
 
-      <main className="app-main">
-        <LeftPanel
-          workerRunning={workerRunning}
-          drawMode={drawMode}
-          stats={stats}
-          onStart={handleStart}
-          onStop={handleStop}
-          onToggleDrawMode={() => setDrawMode(m => !m)}
-        />
+      <HeaderBar
+        workerRunning={workerRunning}
+        drawMode={drawMode}
+        onStart={handleStart}
+        onStop={handleStop}
+        onToggleDrawMode={() => setDrawMode(m => !m)}
+      />
+
+      <div className="app-grid">
+
+        {/* Top-left: live video feed */}
         <VideoCanvas
           active={workerRunning}
           drawMode={drawMode}
           onLineSent={() => setDrawMode(false)}
         />
-        <RightPanel />
-      </main>
+
+        {/* Top-right: analytics & intelligence */}
+        <div className="panel">
+          <div className="panel-header">
+            <span className="panel-title-text">Analytics &amp; Intelligence</span>
+          </div>
+          <div className="panel-body">
+            <AnalyticsPanel />
+          </div>
+        </div>
+
+        {/* Bottom-left: AI chat assistant */}
+        <div className="panel">
+          <div className="panel-header">
+            <span className="panel-title-text">AI Surveillance Assistant</span>
+          </div>
+          <div className="panel-body">
+            <ChatPanel />
+          </div>
+        </div>
+
+        {/* Bottom-right: reports & live KPIs */}
+        <div className="panel">
+          <div className="panel-header">
+            <span className="panel-title-text">Reports &amp; Live Stats</span>
+          </div>
+          <div className="panel-body">
+            <ReportsPanel stats={stats} />
+          </div>
+        </div>
+
+      </div>
     </div>
   )
 }
