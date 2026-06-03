@@ -23,16 +23,15 @@ export default function App() {
       fetch(`${config.backendUrl}/api/events/counts?minutes=${config.statsWindowMinutes}`)
         .then(r => r.json())
         .then(data => {
-          const sum = (suffix) =>
-            Object.entries(data)
-              .filter(([k]) => k.endsWith(suffix))
-              .reduce((s, [, v]) => s + Number(v), 0)
+          const VEHICLE_TYPES = ['car', 'truck', 'bus', 'motorcycle']
+          const sumVehicle = (dir) =>
+            VEHICLE_TYPES.reduce((s, t) => s + (Number(data[`${t}_${dir}`]) || 0), 0)
 
           setStats({
-            personIn:   data['person_IN']  || 0,
-            personOut:  data['person_OUT'] || 0,
-            vehicleIn:  sum('vehicle_IN'),
-            vehicleOut: sum('vehicle_OUT'),
+            personIn:   Number(data['person_IN'])  || 0,
+            personOut:  Number(data['person_OUT']) || 0,
+            vehicleIn:  sumVehicle('IN'),
+            vehicleOut: sumVehicle('OUT'),
           })
         })
         .catch(() => {})

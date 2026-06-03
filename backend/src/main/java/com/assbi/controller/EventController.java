@@ -2,6 +2,7 @@ package com.assbi.controller;
 
 import com.assbi.dto.CrossingEventRequest;
 import com.assbi.model.CrossingEvent;
+import com.assbi.service.AnomalyService;
 import com.assbi.service.CrossingService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -14,13 +15,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/events")
-@CrossOrigin(origins = "*")
 public class EventController {
 
     private final CrossingService crossingService;
+    private final AnomalyService  anomalyService;
 
-    public EventController(CrossingService crossingService) {
+    public EventController(CrossingService crossingService, AnomalyService anomalyService) {
         this.crossingService = crossingService;
+        this.anomalyService  = anomalyService;
     }
 
     // Python detection worker POSTs here on each crossing
@@ -54,5 +56,20 @@ public class EventController {
         return ResponseEntity.ok(
             crossingService.hourlyBreakdown(Instant.parse(from), Instant.parse(to))
         );
+    }
+
+    // Clean hourly summary for last N hours — used by Analytics dashboard chart
+    @GetMapping("/hourly-summary")
+    public ResponseEntity<List<Map<String, Object>>> hourlySummary(
+            @RequestParam(defaultValue = "24") int hours) {
+        Instant to   = Instant.now();
+        Instant from = to.minus(hours, ChronoUnit.HOURS);
+        return ResponseEntity.ok(crossingService.hourlySummary(from, to));
+    }
+
+    // Anomaly detection — flags hours with unusual crossing counts (mean + 2σ)
+    @GetMapping("/anomalies")
+    public ResponseEntity<List<Map<String, Object>>> anomalies() {
+        return ResponseEntity.ok(anomalyService.detectAnomalies());
     }
 }

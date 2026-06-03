@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Pattern;
 
 public record CrossingEventRequest(
 
-    @NotNull
+    @NotBlank
     String timestamp,       // ISO-8601
 
     @NotNull

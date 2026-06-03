@@ -27,8 +27,8 @@ CSV_FALLBACK_PATH = os.getenv("CSV_FALLBACK_PATH", "output/events_fallback.csv")
 # ── COCO classes tracked ──────────────────────────────────────────────────────
 ALLOWED_CLASSES = {
     0: "person",
-    2: "vehicle",   # car
-    3: "vehicle",   # motorcycle
-    5: "vehicle",   # bus
-    7: "vehicle",   # truck
+    2: "car",   # car
+    3: "motorcycle",   # motorcycle
+    5: "bus",   # bus
+    7: "truck",   # truck
 }

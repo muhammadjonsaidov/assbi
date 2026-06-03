@@ -30,7 +30,8 @@ class VideoSource:
         self._youtube_original_url = url
         try:
             result = subprocess.run(
-                ["yt-dlp", "-f", "best[ext=mp4]/best", "-g", url],
+                ["yt-dlp", "--cookies-from-browser", "chromium",
+                 "-f", "best[ext=mp4]/best", "-g", url],
                 capture_output=True, text=True, timeout=30
             )
             stream_url = result.stdout.strip().split("\n")[0]

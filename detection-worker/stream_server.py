@@ -52,24 +52,33 @@ class FrameHandler(BaseHTTPRequestHandler):
     def log_message(self, format, *args):
         pass  # suppress request logs
 
+    def do_OPTIONS(self):
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
     def do_GET(self):
-        if self.path == "/frame":
+        path = self.path.split('?')[0]
+        if path == "/frame":
             self._serve_frame()
-        elif self.path == "/stats":
+        elif path == "/stats":
             self._serve_stats()
-        elif self.path == "/health":
+        elif path == "/health":
             self._send_json({"status": "ok"})
-        elif self.path == "/ready":
+        elif path == "/ready":
             with _lock:
                 ready = len(_latest_frame_bytes) > 0
             self._send_json({"ready": ready})
-        elif self.path == "/stream":
+        elif path == "/stream":
             self._serve_stream()
         else:
             self.send_error(404)
 
     def do_POST(self):
-        if self.path == "/line":
+        path = self.path.split('?')[0]
+        if path == "/line":
             self._receive_line()
         else:
             self.send_error(404)

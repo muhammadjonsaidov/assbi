@@ -17,6 +17,7 @@ export default function VideoCanvas({ active, drawMode, onLineSent }) {
 
   const [streamReady, setStreamReady] = useState(false)
   const [fps, setFps] = useState(0)
+  const [workerError, setWorkerError] = useState(null)
 
   // ── Coordinate helpers ──────────────────────────────────────────────────────
 
@@ -121,23 +122,32 @@ export default function VideoCanvas({ active, drawMode, onLineSent }) {
       fetching.current = false
       setStreamReady(false)
       setFps(0)
+      setWorkerError(null)
       const canvas = canvasRef.current
       if (canvas) canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
       return
     }
 
+    let failCount = 0
     // Poll /ready until Python has produced at least one frame
     pollerRef.current = setInterval(() => {
       fetch(`${config.frameServerUrl}/ready`)
         .then(r => r.json())
         .then(d => {
+          failCount = 0
+          setWorkerError(null)
           if (d.ready) {
             clearInterval(pollerRef.current)
             timerRef.current = setInterval(fetchAndDraw, config.framePollMs)
             setStreamReady(true)
           }
         })
-        .catch(() => {})
+        .catch(() => {
+          failCount++
+          if (failCount >= 5) {
+            setWorkerError('Worker unreachable — check logs/worker.log')
+          }
+        })
     }, 1000)
 
     return () => {
@@ -196,7 +206,10 @@ export default function VideoCanvas({ active, drawMode, onLineSent }) {
       {!streamReady && (
         <div className="stream-placeholder">
           <div className="placeholder-icon">📷</div>
-          {active ? 'Waiting for first frame…' : 'Select a source and click Start'}
+          {workerError
+            ? <span style={{ color: '#ff6b6b' }}>{workerError}</span>
+            : active ? 'Waiting for first frame…' : 'Select a source and click Start'
+          }
         </div>
       )}
       {streamReady && <div className="fps-badge">{fps} fps</div>}

@@ -43,3 +43,7 @@ assbi:
   stats:
     push-rate-ms: 1000
     live-window-minutes: 60
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+  data-retention:
+    days: ${DATA_RETENTION_DAYS:90}

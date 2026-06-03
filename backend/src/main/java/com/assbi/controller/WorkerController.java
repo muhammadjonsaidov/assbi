@@ -9,7 +9,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/worker")
-@CrossOrigin(origins = "*")
 public class WorkerController {
 
     @Value("${assbi.root:..}")

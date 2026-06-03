@@ -1,5 +1,6 @@
 package com.assbi.controller;
 
+import com.assbi.service.ForecastService;
 import com.assbi.service.ReportService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -10,13 +11,14 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/reports")
-@CrossOrigin(origins = "*")
 public class ReportController {
 
-    private final ReportService reportService;
+    private final ReportService    reportService;
+    private final ForecastService  forecastService;
 
-    public ReportController(ReportService reportService) {
-        this.reportService = reportService;
+    public ReportController(ReportService reportService, ForecastService forecastService) {
+        this.reportService   = reportService;
+        this.forecastService = forecastService;
     }
 
     @GetMapping("/weekly")
@@ -44,5 +46,11 @@ public class ReportController {
         LocalDate target = date != null ? date : LocalDate.now().minusDays(1);
         reportService.rebuildSummaryForDate(target);
         return ResponseEntity.ok("Summary rebuilt for " + target);
+    }
+
+    // Weighted-moving-average forecast for tomorrow based on last 7 days
+    @GetMapping("/forecast")
+    public ResponseEntity<Map<String, Object>> forecast() {
+        return ResponseEntity.ok(forecastService.forecast());
     }
 }

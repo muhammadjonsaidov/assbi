@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import config from '../config'
+import AnalyticsPanel from './AnalyticsPanel.jsx'
 
 export default function RightPanel() {
   const [activeTab, setActiveTab] = useState('chat')
@@ -77,13 +78,18 @@ export default function RightPanel() {
   return (
     <aside className="right-panel">
       <div className="tab-bar">
-        <button className={`tab${activeTab === 'chat'    ? ' active' : ''}`} onClick={() => setActiveTab('chat')}>
+        <button className={`tab${activeTab === 'chat'      ? ' active' : ''}`} onClick={() => setActiveTab('chat')}>
           💬 Chat
         </button>
-        <button className={`tab${activeTab === 'reports' ? ' active' : ''}`} onClick={() => setActiveTab('reports')}>
+        <button className={`tab${activeTab === 'analytics' ? ' active' : ''}`} onClick={() => setActiveTab('analytics')}>
+          📈 Analytics
+        </button>
+        <button className={`tab${activeTab === 'reports'   ? ' active' : ''}`} onClick={() => setActiveTab('reports')}>
           📊 Reports
         </button>
       </div>
+
+      {activeTab === 'analytics' && <AnalyticsPanel />}
 
       {activeTab === 'chat' && (
         <div className="tab-content">
