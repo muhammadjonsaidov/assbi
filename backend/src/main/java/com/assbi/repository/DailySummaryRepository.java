@@ -13,9 +13,6 @@ import java.util.Optional;
 @Repository
 public interface DailySummaryRepository extends JpaRepository<DailySummary, Long> {
 
-    List<DailySummary> findBySummaryDateBetweenOrderBySummaryDateAsc(
-            LocalDate from, LocalDate to);
-
     Optional<DailySummary> findBySummaryDateAndCameraSourceAndObjectType(
             LocalDate date, String cameraSource, String objectType);
 

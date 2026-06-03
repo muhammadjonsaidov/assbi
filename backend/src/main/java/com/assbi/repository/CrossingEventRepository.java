@@ -40,15 +40,4 @@ public interface CrossingEventRepository extends JpaRepository<CrossingEvent, Lo
     // Recent events (for live dashboard)
     List<CrossingEvent> findTop50ByOrderByTimestampDesc();
 
-    // Events by camera source
-    @Query("""
-        SELECT e FROM CrossingEvent e
-        WHERE e.cameraSource = :source
-          AND e.timestamp BETWEEN :from AND :to
-        ORDER BY e.timestamp DESC
-        """)
-    List<CrossingEvent> findBySourceAndPeriod(
-            @Param("source") String source,
-            @Param("from") Instant from,
-            @Param("to") Instant to);
 }

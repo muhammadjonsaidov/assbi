@@ -1,6 +1,5 @@
 import cv2
 import subprocess
-import re
 
 
 class VideoSource:

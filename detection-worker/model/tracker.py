@@ -5,8 +5,6 @@ Replace with ultralytics ByteTrack when GPU available:
     model.track(frame, tracker="bytetrack.yaml")
 """
 
-import numpy as np
-
 from config import TRACKER_IOU_THRESHOLD, TRACKER_MAX_MISSED
 
 
