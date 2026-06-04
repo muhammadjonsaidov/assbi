@@ -31,6 +31,7 @@ public class ChatbotService implements IChatbotService {
             Be concise and precise — quote exact numbers from the data.
             If data shows zero events, say so clearly.
             Do not guess or estimate beyond what the data contains.
+            Use plain text only — no markdown, no bold (**), no bullet symbols, no headers.
 
             --- SURVEILLANCE DATA ---
             %s
