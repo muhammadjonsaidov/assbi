@@ -1,5 +1,4 @@
-import { useState, useRef } from 'react'
-import config from '../config'
+import { useState } from 'react'
 
 const SOURCE_DEFAULTS = {
   webcam:  '0',
@@ -15,44 +14,16 @@ const SOURCE_PLACEHOLDERS = {
   youtube: 'https://youtube.com/watch?v=…',
 }
 
-const VIDEO_ACCEPT = '.mp4,.mkv,.avi,.mov,.webm,.flv,.ts,.m4v,.wmv,video/*'
-
 export default function HeaderBar({ workerRunning, drawMode, onStart, onStop, onToggleDrawMode }) {
   const [sourceType,  setSourceType]  = useState('webcam')
   const [sourceValue, setSourceValue] = useState('0')
   const [starting,    setStarting]    = useState(false)
-  const [uploading,   setUploading]   = useState(false)
   const [error,       setError]       = useState(null)
-  const fileInputRef = useRef(null)
 
   const handleTypeChange = (type) => {
     setSourceType(type)
     setSourceValue(SOURCE_DEFAULTS[type])
     setError(null)
-  }
-
-  const handleBrowse = () => fileInputRef.current?.click()
-
-  const handleFileChosen = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    e.target.value = ''           // reset so same file can be re-picked
-    setUploading(true)
-    setError(null)
-    setSourceValue(`Uploading ${file.name}…`)
-    try {
-      const form = new FormData()
-      form.append('file', file)
-      const res  = await fetch(`${config.backendUrl}/api/worker/upload`, { method: 'POST', body: form })
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
-      setSourceValue(data.path)
-    } catch (e) {
-      setError(e.message)
-      setSourceValue('')
-    } finally {
-      setUploading(false)
-    }
   }
 
   const handleStart = async () => {
@@ -67,7 +38,7 @@ export default function HeaderBar({ workerRunning, drawMode, onStart, onStop, on
     }
   }
 
-  const busy = workerRunning || starting || uploading
+  const busy = workerRunning || starting
 
   return (
     <header className="app-header">
@@ -91,27 +62,6 @@ export default function HeaderBar({ workerRunning, drawMode, onStart, onStop, on
         <option value="youtube">YouTube</option>
       </select>
 
-      {/* hidden native file picker */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept={VIDEO_ACCEPT}
-        style={{ display: 'none' }}
-        onChange={handleFileChosen}
-        disabled={workerRunning}
-      />
-
-      {sourceType === 'file' && (
-        <button
-          className="btn-hdr btn-browse"
-          onClick={handleBrowse}
-          disabled={workerRunning || uploading}
-          title="Pick a video file"
-        >
-          {uploading ? '⏳' : '📂 Browse'}
-        </button>
-      )}
-
       <input
         type="text"
         className="source-input"
@@ -119,7 +69,7 @@ export default function HeaderBar({ workerRunning, drawMode, onStart, onStop, on
         onChange={e => setSourceValue(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && !busy && handleStart()}
         placeholder={SOURCE_PLACEHOLDERS[sourceType]}
-        disabled={workerRunning || uploading}
+        disabled={workerRunning}
       />
 
       <button
