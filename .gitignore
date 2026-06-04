@@ -24,3 +24,12 @@ logs/
 # Secrets / env
 .env
 .env.*
+
+# Model weights and datasets
+*.pt
+*.onnx
+detection-worker/dataset/
+detection-worker/runs/
+
+# Claude internal
+.claude/
