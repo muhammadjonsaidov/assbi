@@ -15,10 +15,9 @@ import argparse
 from ultralytics import YOLO
 
 
-def train(data_yaml, model_path, epochs, batch, imgsz, project, name):
+def train(data_yaml, model_path, epochs, batch, imgsz, project, name, resume=False):
     model = YOLO(model_path)
-    results = model.train(
-        data=data_yaml,
+    train_kwargs = dict(
         epochs=epochs,
         batch=batch,
         imgsz=imgsz,
@@ -26,7 +25,11 @@ def train(data_yaml, model_path, epochs, batch, imgsz, project, name):
         name=name,
         exist_ok=True,
         verbose=True,
+        resume=resume,
     )
+    if not resume:
+        train_kwargs["data"] = data_yaml
+    results = model.train(**train_kwargs)
     print(f"[train] Done. Results saved to {project}/{name}/")
     print(f"[train] Best weights: {project}/{name}/weights/best.pt")
     # result.csv auto-generated at {project}/{name}/results.csv
@@ -42,6 +45,7 @@ if __name__ == "__main__":
     p.add_argument("--imgsz", type=int, default=640)
     p.add_argument("--project", default="runs/train")
     p.add_argument("--name", default="assbi_model")
+    p.add_argument("--resume", action="store_true", help="Resume from last.pt checkpoint")
     args = p.parse_args()
     train(args.data, args.model, args.epochs, args.batch,
-          args.imgsz, args.project, args.name)
+          args.imgsz, args.project, args.name, args.resume)
