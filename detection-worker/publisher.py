@@ -62,7 +62,6 @@ def publish(event: dict, camera_source: str):
         "timestamp":    datetime.now(timezone.utc).isoformat(),
         "trackId":      event["track_id"],
         "objectType":   event["label"],
-        "classId":      event["cls"],
         "direction":    event["direction"],
         "positionX":    round(event["position"][0], 2),
         "positionY":    round(event["position"][1], 2),

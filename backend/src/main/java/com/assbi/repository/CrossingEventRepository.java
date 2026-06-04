@@ -37,7 +37,5 @@ public interface CrossingEventRepository extends JpaRepository<CrossingEvent, Lo
             @Param("from") Instant from,
             @Param("to") Instant to);
 
-    // Recent events (for live dashboard)
-    List<CrossingEvent> findTop50ByOrderByTimestampDesc();
 
 }

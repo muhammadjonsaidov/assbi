@@ -1,6 +1,9 @@
 package com.assbi.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.MessagingException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -12,14 +15,16 @@ import java.util.Map;
 @Service
 public class StatsWebSocketService {
 
+    private static final Logger log = LoggerFactory.getLogger(StatsWebSocketService.class);
+
     private final SimpMessagingTemplate messaging;
-    private final CrossingService crossingService;
+    private final ICrossingService      crossingService;
 
     @Value("${assbi.stats.live-window-minutes:60}")
     private int liveWindowMinutes;
 
-    public StatsWebSocketService(SimpMessagingTemplate messaging, CrossingService crossingService) {
-        this.messaging = messaging;
+    public StatsWebSocketService(SimpMessagingTemplate messaging, ICrossingService crossingService) {
+        this.messaging       = messaging;
         this.crossingService = crossingService;
     }
 
@@ -28,14 +33,12 @@ public class StatsWebSocketService {
         try {
             Instant to   = Instant.now();
             Instant from = to.minus(liveWindowMinutes, ChronoUnit.MINUTES);
-            Map<String, Object> counts = crossingService.countsSince(from, to);
+            Map<String, Long> counts = crossingService.countsSince(from, to);
             messaging.convertAndSend("/topic/stats", counts);
+        } catch (MessagingException ignored) {
+            // normal when no clients connected
         } catch (Exception e) {
-            // Non-fatal — WebSocket push can fail if no subscribers are connected
-            if (!(e instanceof org.springframework.messaging.MessagingException)) {
-                org.slf4j.LoggerFactory.getLogger(StatsWebSocketService.class)
-                    .warn("stats push failed: {}", e.getMessage());
-            }
+            log.warn("stats push failed: {}", e.getMessage());
         }
     }
 }

@@ -11,11 +11,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Service
-public class ChatbotService {
+public class ChatbotService implements IChatbotService {
 
-    private final ReportService reportService;
+    private final IReportService reportService;
 
-    public ChatbotService(ReportService reportService) {
+    public ChatbotService(IReportService reportService) {
         this.reportService = reportService;
     }
 

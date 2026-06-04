@@ -21,9 +21,6 @@ public class CrossingEvent {
     @Column(name = "object_type", nullable = false, length = 20)
     private String objectType;
 
-    @Column(name = "class_id", nullable = false)
-    private Integer classId;
-
     @Column(nullable = false, length = 3)
     private String direction;
 
@@ -42,38 +39,26 @@ public class CrossingEvent {
     public CrossingEvent() {}
 
     public CrossingEvent(Instant timestamp, Integer trackId, String objectType,
-                         Integer classId, String direction,
+                         String direction,
                          BigDecimal positionX, BigDecimal positionY,
                          String cameraSource, BigDecimal confidence) {
-        this.timestamp = timestamp;
-        this.trackId = trackId;
-        this.objectType = objectType;
-        this.classId = classId;
-        this.direction = direction;
-        this.positionX = positionX;
-        this.positionY = positionY;
+        this.timestamp    = timestamp;
+        this.trackId      = trackId;
+        this.objectType   = objectType;
+        this.direction    = direction;
+        this.positionX    = positionX;
+        this.positionY    = positionY;
         this.cameraSource = cameraSource;
-        this.confidence = confidence;
+        this.confidence   = confidence;
     }
 
-    public Long getId() { return id; }
-    public Instant getTimestamp() { return timestamp; }
-    public Integer getTrackId() { return trackId; }
-    public String getObjectType() { return objectType; }
-    public Integer getClassId() { return classId; }
-    public String getDirection() { return direction; }
-    public BigDecimal getPositionX() { return positionX; }
-    public BigDecimal getPositionY() { return positionY; }
-    public String getCameraSource() { return cameraSource; }
-    public BigDecimal getConfidence() { return confidence; }
-
-    public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
-    public void setTrackId(Integer trackId) { this.trackId = trackId; }
-    public void setObjectType(String objectType) { this.objectType = objectType; }
-    public void setClassId(Integer classId) { this.classId = classId; }
-    public void setDirection(String direction) { this.direction = direction; }
-    public void setPositionX(BigDecimal positionX) { this.positionX = positionX; }
-    public void setPositionY(BigDecimal positionY) { this.positionY = positionY; }
-    public void setCameraSource(String cameraSource) { this.cameraSource = cameraSource; }
-    public void setConfidence(BigDecimal confidence) { this.confidence = confidence; }
+    public Long       getId()           { return id; }
+    public Instant    getTimestamp()    { return timestamp; }
+    public Integer    getTrackId()      { return trackId; }
+    public String     getObjectType()   { return objectType; }
+    public String     getDirection()    { return direction; }
+    public BigDecimal getPositionX()    { return positionX; }
+    public BigDecimal getPositionY()    { return positionY; }
+    public String     getCameraSource() { return cameraSource; }
+    public BigDecimal getConfidence()   { return confidence; }
 }

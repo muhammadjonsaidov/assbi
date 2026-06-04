@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Pattern;
 public record CrossingEventRequest(
 
     @NotBlank
-    String timestamp,       // ISO-8601
+    String timestamp,
 
     @NotNull
     Integer trackId,
@@ -15,11 +15,8 @@ public record CrossingEventRequest(
     @NotBlank
     String objectType,
 
-    @NotNull
-    Integer classId,
-
     @NotBlank
-    @Pattern(regexp = "IN|OUT")
+    @Pattern(regexp = "IN|OUT", message = "must be IN or OUT")
     String direction,
 
     Double positionX,

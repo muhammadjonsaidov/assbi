@@ -1,14 +1,18 @@
 package com.assbi.service;
 
+import com.assbi.dto.ForecastDto;
 import com.assbi.repository.DailySummaryRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
-public class ForecastService {
+public class ForecastService implements IForecastService {
 
     private final DailySummaryRepository summaryRepo;
 
@@ -16,25 +20,26 @@ public class ForecastService {
         this.summaryRepo = summaryRepo;
     }
 
-    public Map<String, Object> forecast() {
+    @Override
+    public ForecastDto forecast() {
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         LocalDate from  = today.minusDays(7);
         LocalDate to    = today.minusDays(1);
 
         List<Object[]> rows = summaryRepo.aggregatedByDateAndType(from, to);
 
-        // Aggregate daily totals across all object types
         Map<LocalDate, Long> dailyTotals = new LinkedHashMap<>();
         for (Object[] row : rows) {
             LocalDate date = (LocalDate) row[0];
-            long in  = ((Number) row[2]).longValue();
-            long out = ((Number) row[3]).longValue();
+            long      in   = ((Number) row[2]).longValue();
+            long      out  = ((Number) row[3]).longValue();
             dailyTotals.merge(date, in + out, Long::sum);
         }
 
         int n = dailyTotals.size();
         if (n == 0) {
-            return buildResult(today, 0, "unknown", "insufficient-data", "low", 0, 0);
+            return new ForecastDto(today.toString(), 0, "unknown",
+                                   "insufficient-data", "low", 0, 0);
         }
 
         // Weighted moving average — newer days carry higher weight
@@ -47,7 +52,7 @@ public class ForecastService {
         }
         long predicted = Math.round(weightedSum / totalWeight);
 
-        // Trend: compare newest 3 vs oldest 3 days
+        // Trend: compare newest 3 vs oldest 3
         String trend = "stable";
         if (n >= 4) {
             long recent = values.subList(n - Math.min(3, n), n).stream().mapToLong(Long::longValue).sum();
@@ -56,22 +61,10 @@ public class ForecastService {
             else if (recent < older * 0.85) trend = "decreasing";
         }
 
-        long histAvg = Math.round(values.stream().mapToLong(Long::longValue).average().orElse(0));
+        long   histAvg    = Math.round(values.stream().mapToLong(Long::longValue).average().orElse(0));
         String confidence = n >= 5 ? "high" : n >= 3 ? "medium" : "low";
 
-        return buildResult(today, predicted, trend, "weighted-moving-average", confidence, n, histAvg);
-    }
-
-    private Map<String, Object> buildResult(LocalDate today, long predicted, String trend,
-                                             String method, String confidence, int days, long histAvg) {
-        Map<String, Object> m = new LinkedHashMap<>();
-        m.put("forecastDate",   today.toString());
-        m.put("predictedTotal", predicted);
-        m.put("trend",          trend);
-        m.put("method",         method);
-        m.put("confidence",     confidence);
-        m.put("basedOnDays",    days);
-        m.put("historicalAvg",  histAvg);
-        return m;
+        return new ForecastDto(today.toString(), predicted, trend,
+                               "weighted-moving-average", confidence, n, histAvg);
     }
 }
