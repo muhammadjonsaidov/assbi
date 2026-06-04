@@ -1,17 +1,50 @@
 import { useState } from 'react'
 import config from '../config'
 
+function formatReport(type, data) {
+  if (!data || typeof data !== 'object') return String(data)
+
+  if (type === 'forecast') {
+    const trend = data.trend === 'increasing' ? '↑' : data.trend === 'decreasing' ? '↓' : '→'
+    return [
+      `Forecast for ${data.forecastDate}`,
+      `  Predicted crossings : ${data.predictedTotal}`,
+      `  Trend               : ${trend} ${data.trend}`,
+      `  Confidence          : ${data.confidence}`,
+      `  Method              : ${data.method}`,
+      `  Historical avg      : ${data.historicalAvg} (over ${data.basedOnDays} days)`,
+    ].join('\n')
+  }
+
+  // Weekly / monthly report
+  const lines = [
+    `Period  : ${data.period}`,
+    `From    : ${data.from}   To: ${data.to}`,
+    `Total   : IN ${data.total_in}  OUT ${data.total_out}`,
+    '',
+    'By type :',
+  ]
+  if (data.by_type) {
+    for (const [type, counts] of Object.entries(data.by_type)) {
+      lines.push(`  ${type.padEnd(12)}  IN ${counts.in ?? 0}  OUT ${counts.out ?? 0}`)
+    }
+  }
+  return lines.join('\n')
+}
+
 export default function ReportsPanel({ stats }) {
-  const [output,  setOutput]  = useState('Select a report to generate.')
-  const [loading, setLoading] = useState(false)
+  const [output,      setOutput]      = useState('Select a report to generate.')
+  const [activeReport, setActiveReport] = useState(null)
+  const [loading,     setLoading]     = useState(false)
 
   const fetchReport = async (type) => {
     setLoading(true)
+    setActiveReport(type)
     setOutput('Generating report…')
     try {
       const res  = await fetch(`${config.backendUrl}/api/reports/${type}`)
       const data = await res.json()
-      setOutput(JSON.stringify(data, null, 2))
+      setOutput(formatReport(type, data))
     } catch (e) {
       setOutput('Error: ' + e.message)
     } finally {
@@ -49,14 +82,26 @@ export default function ReportsPanel({ stats }) {
       <div className="report-section">
         <div className="section-label" style={{ marginBottom: 8 }}>Generate Report</div>
         <div className="report-btns">
-          <button className="btn-report" onClick={() => fetchReport('weekly')}  disabled={loading}>
-            📅 Weekly
+          <button
+            className={`btn-report${activeReport === 'weekly' ? ' active' : ''}`}
+            onClick={() => fetchReport('weekly')}
+            disabled={loading}
+          >
+            Weekly
           </button>
-          <button className="btn-report" onClick={() => fetchReport('monthly')} disabled={loading}>
-            📅 Monthly
+          <button
+            className={`btn-report${activeReport === 'monthly' ? ' active' : ''}`}
+            onClick={() => fetchReport('monthly')}
+            disabled={loading}
+          >
+            Monthly
           </button>
-          <button className="btn-report" onClick={() => fetchReport('forecast')} disabled={loading}>
-            🔮 Forecast
+          <button
+            className={`btn-report${activeReport === 'forecast' ? ' active' : ''}`}
+            onClick={() => fetchReport('forecast')}
+            disabled={loading}
+          >
+            Forecast
           </button>
         </div>
         <pre className="report-output">{output}</pre>

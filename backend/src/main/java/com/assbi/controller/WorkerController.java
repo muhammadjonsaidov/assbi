@@ -27,7 +27,8 @@ public class WorkerController {
         try {
             Path uploadDir = Path.of(System.getProperty("java.io.tmpdir"), "assbi-uploads");
             Files.createDirectories(uploadDir);
-            String safe = file.getOriginalFilename().replaceAll("[^a-zA-Z0-9._-]", "_");
+            String orig = file.getOriginalFilename();
+            String safe = (orig != null ? orig : "upload").replaceAll("[^a-zA-Z0-9._-]", "_");
             Path dest = uploadDir.resolve(System.currentTimeMillis() + "_" + safe);
             file.transferTo(dest);
             return ResponseEntity.ok(Map.of("path", dest.toAbsolutePath().toString()));

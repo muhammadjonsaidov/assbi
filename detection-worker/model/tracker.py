@@ -7,6 +7,8 @@ Replace with ultralytics ByteTrack when GPU available:
 
 from config import TRACKER_IOU_THRESHOLD, TRACKER_MAX_MISSED
 
+_HISTORY_CAP = 30  # max trajectory points kept per track to bound memory
+
 
 def iou(box_a, box_b):
     ax1, ay1, ax2, ay2 = box_a
@@ -75,6 +77,8 @@ class SimpleTracker:
                 track.conf = det.get("conf", 0.0)
                 track.missed_frames = 0
                 track.history.append(det["centre"])
+                if len(track.history) > _HISTORY_CAP:
+                    track.history = track.history[-_HISTORY_CAP:]
                 matched_track_ids.add(track.track_id)
                 matched_det_indices.add(best_det_idx)
             else:

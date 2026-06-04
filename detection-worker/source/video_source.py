@@ -27,18 +27,33 @@ class VideoSource:
 
     def _resolve_youtube(self, url):
         self._youtube_original_url = url
-        try:
-            result = subprocess.run(
-                ["yt-dlp", "--cookies-from-browser", "chromium",
-                 "-f", "best[ext=mp4]/best", "-g", url],
-                capture_output=True, text=True, timeout=30
-            )
-            stream_url = result.stdout.strip().split("\n")[0]
-            if not stream_url:
-                raise ValueError(f"yt-dlp returned empty URL for: {url}")
-            return stream_url
-        except Exception as e:
-            raise RuntimeError(f"YouTube source resolution failed: {e}")
+        # Try each browser cookie store in order; stop on first success.
+        browsers = ["firefox", "chromium", "chrome"]
+        last_err = None
+        for browser in browsers:
+            try:
+                result = subprocess.run(
+                    [
+                        "yt-dlp",
+                        "--js-runtimes", "node",
+                        "--remote-components", "ejs:github",
+                        "--cookies-from-browser", browser,
+                        "-f", "b",
+                        "-g", url,
+                    ],
+                    capture_output=True, text=True, timeout=60
+                )
+                stream_url = result.stdout.strip().split("\n")[0]
+                if stream_url:
+                    return stream_url
+                last_err = result.stderr.strip() or "empty URL"
+            except Exception as e:
+                last_err = str(e)
+        raise RuntimeError(
+            f"YouTube resolution failed (tried {browsers}). "
+            f"Ensure you are logged into YouTube in a browser. "
+            f"Last error: {last_err}"
+        )
 
     def refresh_youtube(self):
         """Re-resolve YouTube stream URL. Call when stream errors after ~6h URL expiry."""

@@ -30,7 +30,12 @@ public class StatsWebSocketService {
             Instant from = to.minus(liveWindowMinutes, ChronoUnit.MINUTES);
             Map<String, Object> counts = crossingService.countsSince(from, to);
             messaging.convertAndSend("/topic/stats", counts);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            // Non-fatal — WebSocket push can fail if no subscribers are connected
+            if (!(e instanceof org.springframework.messaging.MessagingException)) {
+                org.slf4j.LoggerFactory.getLogger(StatsWebSocketService.class)
+                    .warn("stats push failed: {}", e.getMessage());
+            }
         }
     }
 }

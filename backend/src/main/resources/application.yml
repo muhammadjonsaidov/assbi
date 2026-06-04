@@ -37,9 +37,13 @@ management:
         include: health,info,metrics
 
 logging:
+  pattern:
+    console: "%d{HH:mm:ss} %-5level %logger{25} — %msg%n"
   level:
-    com.assbi: DEBUG
-    org.springframework.web: INFO
+    root: WARN
+    com.assbi: INFO
+    org.springframework.web: WARN
+    org.flywaydb: INFO
 
 assbi:
   root: ${ASSBI_ROOT:..}

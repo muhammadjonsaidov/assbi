@@ -1,16 +1,26 @@
 """
 Publishes crossing events to Spring Boot API via HTTP POST.
 Falls back to local CSV log if API unreachable.
+Non-blocking: events are queued and sent by a daemon thread so the
+main detection loop is never stalled by a slow or unavailable API.
 """
 
-import requests
 import csv
 import os
+import queue
+import threading
 from datetime import datetime, timezone
+
+import requests
 
 from config import SPRING_API_URL as API_URL, API_TIMEOUT_S, CSV_FALLBACK_PATH as CSV_FALLBACK
 
+_queue: "queue.Queue[dict]" = queue.Queue(maxsize=500)
 _csv_initialized = False
+
+
+def _ts() -> str:
+    return datetime.now().strftime("%H:%M:%S")
 
 
 def _init_csv():
@@ -26,8 +36,28 @@ def _init_csv():
         _csv_initialized = True
 
 
+def _send_loop():
+    while True:
+        payload = _queue.get()
+        try:
+            resp = requests.post(API_URL, json=payload, timeout=API_TIMEOUT_S)
+            resp.raise_for_status()
+        except Exception as e:
+            print(f"[{_ts()}] [publish] API error ({type(e).__name__}) — writing CSV", flush=True)
+            try:
+                _fallback_csv(payload)
+            except Exception as csv_err:
+                print(f"[{_ts()}] [publish] CSV fallback failed: {csv_err}", flush=True)
+        finally:
+            _queue.task_done()
+
+
+# Daemon publisher thread — starts automatically on import
+threading.Thread(target=_send_loop, daemon=True, name="publisher").start()
+
+
 def publish(event: dict, camera_source: str):
-    """Send crossing event to Spring Boot API. Falls back to CSV on failure."""
+    """Enqueue a crossing event. Returns immediately; never blocks the caller."""
     payload = {
         "timestamp":    datetime.now(timezone.utc).isoformat(),
         "trackId":      event["track_id"],
@@ -39,23 +69,16 @@ def publish(event: dict, camera_source: str):
         "cameraSource": camera_source,
         "confidence":   round(event.get("conf", 0.0), 3),
     }
-
     try:
-        resp = requests.post(API_URL, json=payload, timeout=API_TIMEOUT_S)
-        resp.raise_for_status()
-    except Exception as e:
-        print(f"[publisher] API error ({e}), falling back to CSV")
-        try:
-            _fallback_csv(payload)
-        except Exception as csv_err:
-            print(f"[publisher] CSV fallback also failed: {csv_err}")
+        _queue.put_nowait(payload)
+    except queue.Full:
+        print(f"[{_ts()}] [publish] queue full — dropping event", flush=True)
 
 
 def _fallback_csv(payload: dict):
     _init_csv()
     with open(CSV_FALLBACK, "a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
+        csv.writer(f).writerow([
             payload["timestamp"],
             payload["trackId"],
             payload["objectType"],
