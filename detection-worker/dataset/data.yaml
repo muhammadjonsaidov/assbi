@@ -3,4 +3,4 @@ val: valid/images
 test: test/images
 
 nc: 4
-names: ['bus', 'car', 'motorcycle', 'truck']
+names: ['car', 'motorcycle', 'bus', 'truck']

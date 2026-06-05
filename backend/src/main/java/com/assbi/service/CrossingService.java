@@ -67,15 +67,17 @@ public class CrossingService implements ICrossingService {
 
         List<HourlySummaryDto> result = new ArrayList<>();
         byHour.forEach((hour, counts) -> {
-            long vehicleIn  = VEHICLE_TYPES.stream().mapToLong(t -> counts.getOrDefault(t + "_IN",  0L)).sum();
-            long vehicleOut = VEHICLE_TYPES.stream().mapToLong(t -> counts.getOrDefault(t + "_OUT", 0L)).sum();
-            long total      = counts.values().stream().mapToLong(Long::longValue).sum();
+            long total = counts.values().stream().mapToLong(Long::longValue).sum();
             result.add(new HourlySummaryDto(
                 hour,
-                counts.getOrDefault("person_IN",  0L),
-                counts.getOrDefault("person_OUT", 0L),
-                vehicleIn,
-                vehicleOut,
+                counts.getOrDefault("car_IN",        0L),
+                counts.getOrDefault("car_OUT",       0L),
+                counts.getOrDefault("motorcycle_IN", 0L),
+                counts.getOrDefault("motorcycle_OUT",0L),
+                counts.getOrDefault("bus_IN",        0L),
+                counts.getOrDefault("bus_OUT",       0L),
+                counts.getOrDefault("truck_IN",      0L),
+                counts.getOrDefault("truck_OUT",     0L),
                 total
             ));
         });

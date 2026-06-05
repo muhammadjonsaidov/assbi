@@ -1,47 +1,99 @@
 import { useState, useEffect, useCallback } from 'react'
 import config from '../config'
 
-// ── SVG bar chart — always fills container width ───────────────────────────────
+// ── SVG line chart ─────────────────────────────────────────────────────────────
 
-const CHART_W = 600   // SVG coordinate space; CSS width:100% scales it to container
-const CHART_H = 100
+const CHART_W = 600
+const CHART_H = 110
+const PAD_L   = 28
+const PAD_B   = 18
 
-function BarChart({ data }) {
+const TYPE_COLORS = {
+  car:        '#f59e0b',
+  motorcycle: '#a78bfa',
+  bus:        '#10b981',
+  truck:      '#38bdf8',
+}
+const TYPES = ['car', 'motorcycle', 'bus', 'truck']
+
+function LineChart({ data }) {
   if (!data.length) return <p className="hint-text">No traffic data for last 24h</p>
 
   const n      = data.length
-  const maxVal = Math.max(...data.map(d => d.total), 1)
-  const barW   = Math.max(2, Math.floor(CHART_W / n) - 2)
+  const maxVal = Math.max(...TYPES.flatMap(t => data.map(d => d[`${t}In`] + d[`${t}Out`])), 1)
+
+  const px = i => PAD_L + Math.round(i * (CHART_W - PAD_L) / Math.max(n - 1, 1))
+  const py = v => CHART_H - PAD_B - Math.round((v / maxVal) * (CHART_H - PAD_B))
+
+  const gridVals = [0, 0.25, 0.5, 0.75, 1]
 
   return (
     <svg
-      viewBox={`0 0 ${CHART_W} ${CHART_H + 20}`}
-      style={{ width: '100%', height: CHART_H + 20, display: 'block' }}
+      viewBox={`0 0 ${CHART_W} ${CHART_H + 4}`}
+      style={{ width: '100%', height: CHART_H + 4, display: 'block' }}
       role="img"
-      aria-label="Hourly traffic bar chart"
+      aria-label="Hourly traffic line chart"
     >
-      {/* grid lines */}
-      {[0.25, 0.5, 0.75, 1].map(frac => {
-        const y = CHART_H - Math.round(frac * CHART_H)
-        return <line key={frac} x1={0} y1={y} x2={CHART_W} y2={y} stroke="#161630" strokeWidth={1} />
-      })}
-
-      {data.map((d, i) => {
-        const personH  = Math.round(((d.personIn  + d.personOut)  / maxVal) * CHART_H)
-        const vehicleH = Math.round(((d.vehicleIn + d.vehicleOut) / maxVal) * CHART_H)
-        const x     = Math.round(i * (CHART_W / n))
-        const label = (d.hour || '').substring(11, 13)
-        const showLabel = n <= 12 || i % Math.max(1, Math.round(n / 8)) === 0
+      {/* grid lines + y-labels */}
+      {gridVals.map(frac => {
+        const y = py(frac * maxVal)
         return (
-          <g key={d.hour || i}>
-            <rect x={x} y={CHART_H - vehicleH}           width={barW} height={vehicleH} fill="#f59e0b" opacity="0.85" rx="1" />
-            <rect x={x} y={CHART_H - vehicleH - personH} width={barW} height={personH}  fill="#10b981" opacity="0.85" rx="1" />
-            {showLabel && (
-              <text x={x + barW / 2} y={CHART_H + 13} textAnchor="middle" fontSize="8" fill="#3d5070">
-                {label}h
+          <g key={frac}>
+            <line x1={PAD_L} y1={y} x2={CHART_W} y2={y} stroke="#161630" strokeWidth={1} />
+            {frac > 0 && (
+              <text x={PAD_L - 3} y={y + 3} textAnchor="end" fontSize="7" fill="#2d3a5a">
+                {Math.round(frac * maxVal)}
               </text>
             )}
           </g>
+        )
+      })}
+
+      {/* lines + dots per type */}
+      {TYPES.map(type => {
+        const pts = data.map((d, i) => [px(i), py(d[`${type}In`] + d[`${type}Out`])])
+        const polyline = pts.map(([x, y]) => `${x},${y}`).join(' ')
+        const color = TYPE_COLORS[type]
+
+        return (
+          <g key={type}>
+            {/* area fill */}
+            <polyline
+              points={[
+                `${px(0)},${py(0)}`,
+                ...pts.map(([x, y]) => `${x},${y}`),
+                `${px(n - 1)},${py(0)}`,
+              ].join(' ')}
+              fill={color}
+              fillOpacity="0.06"
+              stroke="none"
+            />
+            {/* line */}
+            <polyline
+              points={polyline}
+              fill="none"
+              stroke={color}
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              opacity="0.9"
+            />
+            {/* dots */}
+            {pts.map(([x, y], i) => (
+              <circle key={i} cx={x} cy={y} r="2.5" fill={color} opacity="0.85" />
+            ))}
+          </g>
+        )
+      })}
+
+      {/* x-axis labels */}
+      {data.map((d, i) => {
+        const show = n <= 12 || i % Math.max(1, Math.round(n / 8)) === 0
+        if (!show) return null
+        return (
+          <text key={i} x={px(i)} y={CHART_H + 2} textAnchor="middle" fontSize="7" fill="#3d5070">
+            {(d.hour || '').substring(11, 13)}h
+          </text>
         )
       })}
     </svg>
@@ -136,8 +188,10 @@ export default function AnalyticsPanel() {
 
       {/* legend + refresh */}
       <div className="chart-legend">
-        <span><span style={{ color: '#10b981' }}>■</span> Person</span>
-        <span><span style={{ color: '#f59e0b' }}>■</span> Vehicle</span>
+        <span><span style={{ color: '#f59e0b' }}>■</span> Car</span>
+        <span><span style={{ color: '#a78bfa' }}>■</span> Motorcycle</span>
+        <span><span style={{ color: '#10b981' }}>■</span> Bus</span>
+        <span><span style={{ color: '#38bdf8' }}>■</span> Truck</span>
         {loading && <span style={{ marginLeft: 'auto', color: '#2d3a5a' }}>Refreshing…</span>}
         <button className="refresh-btn" onClick={refresh} style={loading ? { marginLeft: 0 } : {}}>
           ↻ Refresh
@@ -150,7 +204,7 @@ export default function AnalyticsPanel() {
       <div>
         <div className="section-label">Hourly Traffic — Last 24h</div>
         <div className="chart-wrap">
-          <BarChart data={hourlyData} />
+          <LineChart data={hourlyData} />
         </div>
       </div>
 

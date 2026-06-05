@@ -9,7 +9,10 @@ import config from './config'
 export default function App() {
   const [workerRunning, setWorkerRunning] = useState(false)
   const [drawMode,      setDrawMode]      = useState(false)
-  const [stats, setStats] = useState({ personIn: 0, personOut: 0, vehicleIn: 0, vehicleOut: 0 })
+  const TYPES = ['car', 'motorcycle', 'bus', 'truck']
+  const [stats, setStats] = useState(() =>
+    Object.fromEntries(TYPES.map(t => [t, { in: 0, out: 0 }]))
+  )
 
   useEffect(() => {
     fetch(`${config.backendUrl}/api/worker/status`)
@@ -23,15 +26,13 @@ export default function App() {
       fetch(`${config.backendUrl}/api/events/counts?minutes=${config.statsWindowMinutes}`)
         .then(r => r.json())
         .then(data => {
-          const VEHICLE_TYPES = ['car', 'truck', 'bus', 'motorcycle']
-          const sumVehicle = (dir) =>
-            VEHICLE_TYPES.reduce((s, t) => s + (Number(data[`${t}_${dir}`]) || 0), 0)
-          setStats({
-            personIn:   Number(data['person_IN'])  || 0,
-            personOut:  Number(data['person_OUT']) || 0,
-            vehicleIn:  sumVehicle('IN'),
-            vehicleOut: sumVehicle('OUT'),
-          })
+          const TYPES = ['car', 'motorcycle', 'bus', 'truck']
+          setStats(Object.fromEntries(
+            TYPES.map(t => [t, {
+              in:  Number(data[`${t}_IN`])  || 0,
+              out: Number(data[`${t}_OUT`]) || 0,
+            }])
+          ))
         })
         .catch(() => {})
     }

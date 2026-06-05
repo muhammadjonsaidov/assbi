@@ -2,9 +2,13 @@ package com.assbi.dto;
 
 public record HourlySummaryDto(
     String hour,
-    long personIn,
-    long personOut,
-    long vehicleIn,
-    long vehicleOut,
+    long carIn,
+    long carOut,
+    long motorcycleIn,
+    long motorcycleOut,
+    long busIn,
+    long busOut,
+    long truckIn,
+    long truckOut,
     long total
 ) {}
