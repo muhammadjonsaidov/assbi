@@ -26,10 +26,10 @@ logs/
 .env.*
 
 # Model weights and datasets
-*.pt
 *.onnx
-detection-worker/dataset/
-detection-worker/runs/
+detection-worker/venv/
+detection-worker/yolo26s.pt
+detection-worker/yolov8n.pt
 
 # Claude internal
 .claude/

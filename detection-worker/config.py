@@ -9,7 +9,7 @@ import os
 FRAME_SERVER_PORT = int(os.getenv("FRAME_SERVER_PORT", 5000))
 
 # ── Model / inference ─────────────────────────────────────────────────────────
-DEFAULT_MODEL   = os.getenv("MODEL_PATH", "runs/train/assbi_model/weights/best.pt")
+DEFAULT_MODEL   = os.getenv("MODEL_PATH", "yolo26s.pt")
 DEFAULT_FRAME_SKIP = int(os.getenv("FRAME_SKIP", 3))
 CONF_THRESHOLD  = float(os.getenv("CONF_THRESHOLD", 0.45))
 MIN_BOX_AREA    = int(os.getenv("MIN_BOX_AREA", 200))       # px² — catches distant/top-down persons
@@ -26,8 +26,8 @@ CSV_FALLBACK_PATH = os.getenv("CSV_FALLBACK_PATH", "output/events_fallback.csv")
 
 # ── COCO classes tracked ──────────────────────────────────────────────────────
 ALLOWED_CLASSES = {
-    0: "bus",
-    1: "car",
-    2: "motorcycle",
-    3: "truck",
+    2: "car",
+    3: "motorcycle",
+    5: "bus",
+    7: "truck",
 }
