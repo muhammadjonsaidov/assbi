@@ -2,6 +2,7 @@ package com.assbi.repository;
 
 import com.assbi.model.CrossingEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -23,6 +24,10 @@ public interface CrossingEventRepository extends JpaRepository<CrossingEvent, Lo
     List<Object[]> countByTypeAndDirectionBetween(
             @Param("from") Instant from,
             @Param("to") Instant to);
+
+    @Modifying
+    @Query("DELETE FROM CrossingEvent e WHERE e.timestamp < :cutoff")
+    int deleteOlderThan(@Param("cutoff") Instant cutoff);
 
     // Hourly breakdown for a date range
     @Query(value = """

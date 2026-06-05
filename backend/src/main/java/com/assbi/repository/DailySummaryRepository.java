@@ -2,6 +2,7 @@ package com.assbi.repository;
 
 import com.assbi.model.DailySummary;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,6 +13,10 @@ import java.util.Optional;
 
 @Repository
 public interface DailySummaryRepository extends JpaRepository<DailySummary, Long> {
+
+    @Modifying
+    @Query("DELETE FROM DailySummary s WHERE s.summaryDate < :cutoff")
+    int deleteOlderThan(@Param("cutoff") LocalDate cutoff);
 
     Optional<DailySummary> findBySummaryDateAndCameraSourceAndObjectType(
             LocalDate date, String cameraSource, String objectType);

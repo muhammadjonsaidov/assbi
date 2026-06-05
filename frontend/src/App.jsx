@@ -1,44 +1,19 @@
 import { useState, useEffect } from 'react'
-import HeaderBar     from './components/HeaderBar.jsx'
-import VideoCanvas   from './components/VideoCanvas.jsx'
+import HeaderBar      from './components/HeaderBar.jsx'
+import VideoCanvas    from './components/VideoCanvas.jsx'
 import AnalyticsPanel from './components/AnalyticsPanel.jsx'
-import ChatPanel     from './components/ChatPanel.jsx'
-import ReportsPanel  from './components/ReportsPanel.jsx'
+import ChatPanel      from './components/ChatPanel.jsx'
 import config from './config'
 
 export default function App() {
   const [workerRunning, setWorkerRunning] = useState(false)
   const [drawMode,      setDrawMode]      = useState(false)
-  const TYPES = ['car', 'motorcycle', 'bus', 'truck']
-  const [stats, setStats] = useState(() =>
-    Object.fromEntries(TYPES.map(t => [t, { in: 0, out: 0 }]))
-  )
 
   useEffect(() => {
     fetch(`${config.backendUrl}/api/worker/status`)
       .then(r => r.json())
       .then(d => setWorkerRunning(Boolean(d.running)))
       .catch(() => {})
-  }, [])
-
-  useEffect(() => {
-    const poll = () => {
-      fetch(`${config.backendUrl}/api/events/counts?minutes=${config.statsWindowMinutes}`)
-        .then(r => r.json())
-        .then(data => {
-          const TYPES = ['car', 'motorcycle', 'bus', 'truck']
-          setStats(Object.fromEntries(
-            TYPES.map(t => [t, {
-              in:  Number(data[`${t}_IN`])  || 0,
-              out: Number(data[`${t}_OUT`]) || 0,
-            }])
-          ))
-        })
-        .catch(() => {})
-    }
-    poll()
-    const id = setInterval(poll, config.statsPollingMs)
-    return () => clearInterval(id)
   }, [])
 
   const handleStart = async (source) => {
@@ -95,23 +70,13 @@ export default function App() {
           </div>
         </div>
 
-        {/* Bottom-left: AI chat assistant */}
-        <div className="panel">
+        {/* Bottom: AI chat assistant (full width) */}
+        <div className="panel" style={{ gridColumn: '1 / -1' }}>
           <div className="panel-header">
             <span className="panel-title-text">AI Surveillance Assistant</span>
           </div>
           <div className="panel-body">
             <ChatPanel />
-          </div>
-        </div>
-
-        {/* Bottom-right: reports & live KPIs */}
-        <div className="panel">
-          <div className="panel-header">
-            <span className="panel-title-text">Reports &amp; Live Stats</span>
-          </div>
-          <div className="panel-body">
-            <ReportsPanel stats={stats} />
           </div>
         </div>
 
