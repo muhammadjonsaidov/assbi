@@ -1,10 +1,8 @@
 package com.assbi.controller;
 
-import com.assbi.dto.AnomalyDto;
 import com.assbi.dto.CrossingEventRequest;
 import com.assbi.dto.HourlySummaryDto;
 import com.assbi.model.CrossingEvent;
-import com.assbi.service.IAnomalyService;
 import com.assbi.service.ICrossingService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -20,11 +18,9 @@ import java.util.Map;
 public class EventController {
 
     private final ICrossingService crossingService;
-    private final IAnomalyService  anomalyService;
 
-    public EventController(ICrossingService crossingService, IAnomalyService anomalyService) {
+    public EventController(ICrossingService crossingService) {
         this.crossingService = crossingService;
-        this.anomalyService  = anomalyService;
     }
 
     @PostMapping
@@ -47,10 +43,5 @@ public class EventController {
         Instant to   = Instant.now();
         Instant from = to.minus(hours, ChronoUnit.HOURS);
         return ResponseEntity.ok(crossingService.hourlySummary(from, to));
-    }
-
-    @GetMapping("/anomalies")
-    public ResponseEntity<List<AnomalyDto>> anomalies() {
-        return ResponseEntity.ok(anomalyService.detectAnomalies());
     }
 }

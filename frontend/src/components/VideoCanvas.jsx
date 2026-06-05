@@ -144,7 +144,7 @@ export default function VideoCanvas({ active, drawMode, onLineSent }) {
         })
         .catch(() => {
           failCount++
-          if (failCount >= 5) {
+          if (failCount >= 45) {
             setWorkerError('Worker unreachable — check logs/worker.log')
           }
         })

@@ -144,9 +144,10 @@ def main():
     args = parse_args()
     roi = tuple(int(v) for v in args.roi.split(",")) if args.roi else None
 
+    stream_server.start(port=config.FRAME_SERVER_PORT)
+
     src = VideoSource(args.source)
     src.open()
-    stream_server.start(port=config.FRAME_SERVER_PORT)
     w, h = src.resolution()
     if w == 0 or h == 0:
         w, h = 1280, 720

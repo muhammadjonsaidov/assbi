@@ -1,20 +1,70 @@
 import { useState, useEffect, useCallback } from 'react'
 import config from '../config'
 
-// ── SVG line chart ─────────────────────────────────────────────────────────────
-
-const CHART_W = 600
+const CHART_W = 560
 const CHART_H = 110
 const PAD_L   = 28
 const PAD_B   = 18
 
 const TYPE_COLORS = {
-  car:        '#f59e0b',
-  motorcycle: '#a78bfa',
-  bus:        '#10b981',
-  truck:      '#38bdf8',
+  car:   '#f59e0b',
+  bus:   '#10b981',
+  truck: '#38bdf8',
 }
-const TYPES = ['car', 'motorcycle', 'bus', 'truck']
+const TYPES = ['car', 'bus', 'truck']
+
+// ── Donut pie chart ────────────────────────────────────────────────────────────
+
+function PieChart({ counts }) {
+  const totals = TYPES.map(t => (counts[`${t}_IN`] || 0) + (counts[`${t}_OUT`] || 0))
+  const total  = totals.reduce((s, v) => s + v, 0)
+
+  if (total === 0) {
+    return <p className="hint-text" style={{ marginTop: 24 }}>No crossings in last 60 min</p>
+  }
+
+  const cx = 80, cy = 80, R = 62, ri = 34
+  let angle = -Math.PI / 2
+
+  const slices = TYPES.map((type, i) => {
+    const sweep = totals[i] / total * 2 * Math.PI
+    const a0 = angle
+    const a1 = angle + sweep
+    angle = a1
+    const large = sweep > Math.PI ? 1 : 0
+    const d = [
+      `M ${cx + R * Math.cos(a0)} ${cy + R * Math.sin(a0)}`,
+      `A ${R} ${R} 0 ${large} 1 ${cx + R * Math.cos(a1)} ${cy + R * Math.sin(a1)}`,
+      `L ${cx + ri * Math.cos(a1)} ${cy + ri * Math.sin(a1)}`,
+      `A ${ri} ${ri} 0 ${large} 0 ${cx + ri * Math.cos(a0)} ${cy + ri * Math.sin(a0)}`,
+      'Z',
+    ].join(' ')
+    return { type, d, pct: Math.round(totals[i] / total * 100), count: totals[i] }
+  })
+
+  return (
+    <svg viewBox="0 0 220 165" style={{ width: '100%', display: 'block' }}>
+      {slices.map(s => (
+        <path key={s.type} d={s.d} fill={TYPE_COLORS[s.type]} opacity="0.88" />
+      ))}
+      <text x={cx} y={cy - 7} textAnchor="middle" fontSize="17" fill="#e2e8f0" fontWeight="bold">
+        {total}
+      </text>
+      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="8" fill="#4a5568">crossings</text>
+
+      {slices.map((s, i) => (
+        <g key={s.type} transform={`translate(170, ${16 + i * 42})`}>
+          <rect width="9" height="9" fill={TYPE_COLORS[s.type]} rx="2" />
+          <text x="13" y="8" fontSize="9" fill="#94a3b8">{s.type}</text>
+          <text x="13" y="20" fontSize="12" fill="#e2e8f0" fontWeight="bold">{s.pct}%</text>
+          <text x="13" y="31" fontSize="8" fill="#4a5568">{s.count} events</text>
+        </g>
+      ))}
+    </svg>
+  )
+}
+
+// ── Line chart ─────────────────────────────────────────────────────────────────
 
 function LineChart({ data }) {
   if (!data.length) return <p className="hint-text">No traffic data for last 24h</p>
@@ -25,17 +75,15 @@ function LineChart({ data }) {
   const px = i => PAD_L + Math.round(i * (CHART_W - PAD_L) / Math.max(n - 1, 1))
   const py = v => CHART_H - PAD_B - Math.round((v / maxVal) * (CHART_H - PAD_B))
 
-  const gridVals = [0, 0.25, 0.5, 0.75, 1]
-
   return (
     <svg
       viewBox={`0 0 ${CHART_W} ${CHART_H + 4}`}
-      style={{ width: '100%', height: CHART_H + 4, display: 'block' }}
+      style={{ width: '100%', height: '100%', display: 'block' }}
       role="img"
       aria-label="Hourly traffic line chart"
+      preserveAspectRatio="none"
     >
-      {/* grid lines + y-labels */}
-      {gridVals.map(frac => {
+      {[0, 0.25, 0.5, 0.75, 1].map(frac => {
         const y = py(frac * maxVal)
         return (
           <g key={frac}>
@@ -49,36 +97,20 @@ function LineChart({ data }) {
         )
       })}
 
-      {/* lines + dots per type */}
       {TYPES.map(type => {
         const pts = data.map((d, i) => [px(i), py(d[`${type}In`] + d[`${type}Out`])])
-        const polyline = pts.map(([x, y]) => `${x},${y}`).join(' ')
         const color = TYPE_COLORS[type]
-
         return (
           <g key={type}>
-            {/* area fill */}
             <polyline
-              points={[
-                `${px(0)},${py(0)}`,
-                ...pts.map(([x, y]) => `${x},${y}`),
-                `${px(n - 1)},${py(0)}`,
-              ].join(' ')}
-              fill={color}
-              fillOpacity="0.06"
-              stroke="none"
+              points={[`${px(0)},${py(0)}`, ...pts.map(([x, y]) => `${x},${y}`), `${px(n - 1)},${py(0)}`].join(' ')}
+              fill={color} fillOpacity="0.06" stroke="none"
             />
-            {/* line */}
             <polyline
-              points={polyline}
-              fill="none"
-              stroke={color}
-              strokeWidth="1.5"
-              strokeLinejoin="round"
-              strokeLinecap="round"
-              opacity="0.9"
+              points={pts.map(([x, y]) => `${x},${y}`).join(' ')}
+              fill="none" stroke={color} strokeWidth="1.5"
+              strokeLinejoin="round" strokeLinecap="round" opacity="0.9"
             />
-            {/* dots */}
             {pts.map(([x, y], i) => (
               <circle key={i} cx={x} cy={y} r="2.5" fill={color} opacity="0.85" />
             ))}
@@ -86,10 +118,8 @@ function LineChart({ data }) {
         )
       })}
 
-      {/* x-axis labels */}
       {data.map((d, i) => {
-        const show = n <= 12 || i % Math.max(1, Math.round(n / 8)) === 0
-        if (!show) return null
+        if (n > 12 && i % Math.max(1, Math.round(n / 8)) !== 0) return null
         return (
           <text key={i} x={px(i)} y={CHART_H + 2} textAnchor="middle" fontSize="7" fill="#3d5070">
             {(d.hour || '').substring(11, 13)}h
@@ -100,127 +130,68 @@ function LineChart({ data }) {
   )
 }
 
-// ── Anomaly badge ──────────────────────────────────────────────────────────────
-
-function AnomalyBadge({ a }) {
-  const cls  = a.severity === 'HIGH' ? 'anomaly-badge anomaly-high' : 'anomaly-badge anomaly-medium'
-  const hour = (a.hour || '').substring(11, 16)
-  return (
-    <div className={cls}>
-      ⚠ {a.severity} — {hour} UTC — {a.count} crossings
-      <span style={{ color: '#4a5568', marginLeft: 8 }}>
-        (avg {a.mean}, threshold {a.threshold})
-      </span>
-    </div>
-  )
-}
-
-// ── Forecast card ──────────────────────────────────────────────────────────────
-
-function ForecastCard({ f }) {
-  if (!f || f.basedOnDays === 0) {
-    return (
-      <div className="forecast-card forecast-nodata">
-        <div style={{ fontSize: 13, color: '#3d5070', marginBottom: 4 }}>Insufficient historical data</div>
-        <div style={{ fontSize: 11, color: '#2d3a5a' }}>
-          Forecast activates after 2+ days of crossing events are stored.
-        </div>
-      </div>
-    )
-  }
-
-  const trendColor = f.trend === 'increasing' ? '#10b981'
-                   : f.trend === 'decreasing' ? '#f59e0b'
-                   : '#4a5568'
-  const trendIcon  = f.trend === 'increasing' ? '↑'
-                   : f.trend === 'decreasing' ? '↓'
-                   : '→'
-  return (
-    <div className="forecast-card">
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}>
-        <span className="forecast-number">{f.predictedTotal}</span>
-        <span className="forecast-trend" style={{ color: trendColor }}>
-          {trendIcon} {f.trend}
-        </span>
-      </div>
-      <div className="forecast-meta">
-        Method: {f.method} · Confidence: <span style={{ color: '#64748b' }}>{f.confidence}</span>
-        {' '}· Based on {f.basedOnDays} days · 7-day avg: {f.historicalAvg}
-      </div>
-    </div>
-  )
-}
-
 // ── Main panel ─────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPanel() {
   const [hourlyData, setHourlyData] = useState([])
-  const [anomalies,  setAnomalies]  = useState([])
-  const [forecast,   setForecast]   = useState(null)
-  const [loading,    setLoading]    = useState(true)
+  const [liveCounts, setLiveCounts] = useState({})
   const [error,      setError]      = useState(null)
 
-  const refresh = useCallback(() => {
-    setLoading(true)
-    setError(null)
-    Promise.all([
-      fetch(`${config.backendUrl}/api/events/hourly-summary?hours=24`).then(r => r.json()),
-      fetch(`${config.backendUrl}/api/events/anomalies`).then(r => r.json()),
-      fetch(`${config.backendUrl}/api/reports/forecast`).then(r => r.json()),
-    ])
-      .then(([hourly, anoms, fore]) => {
+  const refreshLive = useCallback(() => {
+    fetch(`${config.backendUrl}/api/events/counts?minutes=60`)
+      .then(r => r.json())
+      .then(data => setLiveCounts(data))
+      .catch(() => {})
+  }, [])
+
+  const refreshSlow = useCallback(() => {
+    fetch(`${config.backendUrl}/api/events/hourly-summary?hours=24`)
+      .then(r => r.json())
+      .then(hourly => {
         setHourlyData(Array.isArray(hourly) ? hourly : [])
-        setAnomalies(Array.isArray(anoms)   ? anoms  : [])
-        setForecast(fore)
+        setError(null)
       })
       .catch(e => setError(e.message))
-      .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => {
-    refresh()
-    const id = setInterval(refresh, 60_000)
-    return () => clearInterval(id)
-  }, [refresh])
+    refreshLive()
+    refreshSlow()
+    const liveId = setInterval(refreshLive, 1_000)
+    const slowId = setInterval(refreshSlow, 10_000)
+    return () => {
+      clearInterval(liveId)
+      clearInterval(slowId)
+    }
+  }, [refreshLive, refreshSlow])
 
   return (
     <div className="analytics-body">
 
-      {/* legend + refresh */}
       <div className="chart-legend">
         <span><span style={{ color: '#f59e0b' }}>■</span> Car</span>
-        <span><span style={{ color: '#a78bfa' }}>■</span> Motorcycle</span>
         <span><span style={{ color: '#10b981' }}>■</span> Bus</span>
         <span><span style={{ color: '#38bdf8' }}>■</span> Truck</span>
-        {loading && <span style={{ marginLeft: 'auto', color: '#2d3a5a' }}>Refreshing…</span>}
-        <button className="refresh-btn" onClick={refresh} style={loading ? { marginLeft: 0 } : {}}>
-          ↻ Refresh
-        </button>
       </div>
 
       {error && <p className="error-text">Backend unreachable: {error}</p>}
 
-      {/* hourly bar chart */}
-      <div>
-        <div className="section-label">Hourly Traffic — Last 24h</div>
-        <div className="chart-wrap">
-          <LineChart data={hourlyData} />
+      <div style={{ display: 'flex', gap: 14, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
+
+        <div style={{ flex: '0 0 220px', display: 'flex', flexDirection: 'column' }}>
+          <div className="section-label">Live Distribution — Last 60 min</div>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <PieChart counts={liveCounts} />
+          </div>
         </div>
-      </div>
 
-      {/* anomaly detection */}
-      <div>
-        <div className="section-label">Anomaly Detection</div>
-        {anomalies.length === 0
-          ? <p className="hint-text">No anomalies in last 24h (threshold: mean + 2σ)</p>
-          : anomalies.map((a, i) => <AnomalyBadge key={i} a={a} />)
-        }
-      </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          <div className="section-label">Hourly Traffic — Last 24h</div>
+          <div className="chart-wrap" style={{ flex: 1, minHeight: 0 }}>
+            <LineChart data={hourlyData} />
+          </div>
+        </div>
 
-      {/* predictive forecast */}
-      <div>
-        <div className="section-label">Tomorrow's Forecast</div>
-        <ForecastCard f={forecast} />
       </div>
 
     </div>

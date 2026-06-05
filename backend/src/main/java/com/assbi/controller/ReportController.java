@@ -1,8 +1,6 @@
 package com.assbi.controller;
 
-import com.assbi.dto.ForecastDto;
 import com.assbi.dto.ReportDto;
-import com.assbi.service.IForecastService;
 import com.assbi.service.IReportService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -14,12 +12,10 @@ import java.time.LocalDate;
 @RequestMapping("/api/reports")
 public class ReportController {
 
-    private final IReportService   reportService;
-    private final IForecastService forecastService;
+    private final IReportService reportService;
 
-    public ReportController(IReportService reportService, IForecastService forecastService) {
-        this.reportService   = reportService;
-        this.forecastService = forecastService;
+    public ReportController(IReportService reportService) {
+        this.reportService = reportService;
     }
 
     @GetMapping("/weekly")
@@ -46,10 +42,5 @@ public class ReportController {
         LocalDate target = date != null ? date : LocalDate.now().minusDays(1);
         reportService.rebuildSummaryForDate(target);
         return ResponseEntity.ok("rebuilt for " + target);
-    }
-
-    @GetMapping("/forecast")
-    public ResponseEntity<ForecastDto> forecast() {
-        return ResponseEntity.ok(forecastService.forecast());
     }
 }

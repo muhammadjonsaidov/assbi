@@ -255,11 +255,11 @@ body {
 .analytics-body {
   flex: 1;
   padding: 14px;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   min-height: 0;
+  overflow: hidden;
 }
 
 .section-label {
@@ -430,51 +430,77 @@ body {
 
 .reports-body {
   flex: 1;
-  overflow-y: auto;
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
   min-height: 0;
 }
 
-.live-stat-in    { color: #10b981; }
-.live-stat-out   { color: #f59e0b; }
+.live-stats-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
-.vehicle-stats-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
+.stats-grid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #161630;
+  border: 1px solid #161630;
+  border-radius: 8px;
+  overflow: hidden;
 }
-.vehicle-stats-table th {
-  color: #3d5070;
-  text-transform: uppercase;
-  font-size: 9px;
-  letter-spacing: 1px;
-  padding: 4px 8px;
-  border-bottom: 1px solid #1a1a3a;
-  text-align: center;
+
+.stats-row {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr 1.2fr;
+  align-items: center;
+  background: #0d0d20;
+  padding: 0 14px;
 }
-.vehicle-stats-table th:first-child { text-align: left; }
-.vehicle-stats-table td {
-  padding: 6px 8px;
-  border-bottom: 1px solid #0e0e28;
-  text-align: center;
-  font-weight: 600;
+
+.stats-row-total {
+  background: #0a0a1c;
+  border-top: 1px solid #1a1a3a;
 }
-.vehicle-stats-table td:first-child { text-align: left; }
-.vehicle-type-label {
+
+.stats-type-label {
   text-transform: capitalize;
   color: #8ba0c0;
-  font-size: 11px;
+  font-size: 13px;
+  font-weight: 600;
 }
-.vehicle-total { color: #64748b; }
-.vehicle-stats-total-row td {
-  border-top: 1px solid #1a1a3a;
-  border-bottom: none;
+
+.stats-row-total .stats-type-label {
   color: #c0d0e8;
+  font-size: 14px;
+}
+
+.stats-in, .stats-out, .stats-total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stats-in    { color: #10b981; font-size: 26px; font-weight: 800; }
+.stats-out   { color: #f59e0b; font-size: 26px; font-weight: 800; }
+.stats-total { color: #64748b; font-size: 26px; font-weight: 700; }
+
+.stats-row-total .stats-in,
+.stats-row-total .stats-out,
+.stats-row-total .stats-total { font-size: 28px; }
+
+.stats-dir {
+  font-size: 8px;
   font-weight: 700;
-  font-size: 12px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  opacity: 0.55;
 }
 
 .report-btns { display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap; }
