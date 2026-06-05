@@ -1,0 +1,13 @@
+train: /home/rhaen/Public/assignment-briefs-23-312/ASSBI/detection-worker/roboflow-model/train/images
+val: /home/rhaen/Public/assignment-briefs-23-312/ASSBI/detection-worker/roboflow-model/valid/images
+test: /home/rhaen/Public/assignment-briefs-23-312/ASSBI/detection-worker/roboflow-model/test/images
+
+nc: 3
+names: ['bus', 'car', 'truck']
+
+roboflow:
+  workspace: muhammadjon-saidov
+  project: bi-assignment
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/muhammadjon-saidov/bi-assignment/dataset/1

@@ -43,7 +43,7 @@ function PieChart({ counts }) {
   })
 
   return (
-    <svg viewBox="0 0 220 165" style={{ width: '100%', display: 'block' }}>
+    <svg viewBox="0 0 260 165" style={{ width: '100%', display: 'block' }}>
       {slices.map(s => (
         <path key={s.type} d={s.d} fill={TYPE_COLORS[s.type]} opacity="0.88" />
       ))}
@@ -53,7 +53,7 @@ function PieChart({ counts }) {
       <text x={cx} y={cy + 10} textAnchor="middle" fontSize="8" fill="#4a5568">crossings</text>
 
       {slices.map((s, i) => (
-        <g key={s.type} transform={`translate(170, ${16 + i * 42})`}>
+        <g key={s.type} transform={`translate(168, ${16 + i * 42})`}>
           <rect width="9" height="9" fill={TYPE_COLORS[s.type]} rx="2" />
           <text x="13" y="8" fontSize="9" fill="#94a3b8">{s.type}</text>
           <text x="13" y="20" fontSize="12" fill="#e2e8f0" fontWeight="bold">{s.pct}%</text>
