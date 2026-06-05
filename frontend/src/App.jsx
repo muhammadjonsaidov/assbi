@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import HeaderBar      from './components/HeaderBar.jsx'
 import VideoCanvas    from './components/VideoCanvas.jsx'
 import AnalyticsPanel from './components/AnalyticsPanel.jsx'
 import ChatPanel      from './components/ChatPanel.jsx'
+import ReportsPanel   from './components/ReportsPanel.jsx'
 import config from './config'
 
 export default function App() {
   const [workerRunning, setWorkerRunning] = useState(false)
   const [drawMode,      setDrawMode]      = useState(false)
+  const [stats,         setStats]         = useState({})
 
   useEffect(() => {
     fetch(`${config.backendUrl}/api/worker/status`)
@@ -15,6 +17,28 @@ export default function App() {
       .then(d => setWorkerRunning(Boolean(d.running)))
       .catch(() => {})
   }, [])
+
+  const refreshStats = useCallback(() => {
+    fetch(`${config.backendUrl}/api/events/counts?minutes=1440`)
+      .then(r => r.json())
+      .then(data => {
+        const s = {}
+        for (const type of ['car', 'bus', 'truck']) {
+          s[type] = {
+            in:  data[`${type}_IN`]  || 0,
+            out: data[`${type}_OUT`] || 0,
+          }
+        }
+        setStats(s)
+      })
+      .catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    refreshStats()
+    const id = setInterval(refreshStats, 10_000)
+    return () => clearInterval(id)
+  }, [refreshStats])
 
   const handleStart = async (source) => {
     const res = await fetch(
@@ -45,8 +69,7 @@ export default function App() {
 
       <div className="app-grid">
 
-        {/* Top-left: live video feed */}
-        <div className="panel">
+        <div className="panel panel-video">
           <div className="panel-header">
             <span className="panel-title-text">Live Feed</span>
             {workerRunning && <span className="live-dot" />}
@@ -60,8 +83,7 @@ export default function App() {
           </div>
         </div>
 
-        {/* Top-right: analytics & intelligence */}
-        <div className="panel">
+        <div className="panel panel-analytics">
           <div className="panel-header">
             <span className="panel-title-text">Analytics &amp; Intelligence</span>
           </div>
@@ -70,13 +92,21 @@ export default function App() {
           </div>
         </div>
 
-        {/* Bottom: AI chat assistant (full width) */}
-        <div className="panel" style={{ gridColumn: '1 / -1' }}>
+        <div className="panel panel-chat">
           <div className="panel-header">
             <span className="panel-title-text">AI Surveillance Assistant</span>
           </div>
           <div className="panel-body">
             <ChatPanel />
+          </div>
+        </div>
+
+        <div className="panel panel-stats" style={{ gridColumn: '1 / -1' }}>
+          <div className="panel-header">
+            <span className="panel-title-text">Reports &amp; Live Stats</span>
+          </div>
+          <div className="panel-body">
+            <ReportsPanel stats={stats} />
           </div>
         </div>
 

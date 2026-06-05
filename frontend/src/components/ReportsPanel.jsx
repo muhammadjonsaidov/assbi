@@ -6,27 +6,28 @@ export default function ReportsPanel({ stats }) {
 
   return (
     <div className="reports-body">
-      <div className="live-stats-section">
-        <div className="section-label">Real-time — Last 60 min</div>
-
-        <div className="stats-grid">
-          {TYPES.map(type => {
-            const s = stats[type] || { in: 0, out: 0 }
-            return (
-              <div key={type} className="stats-row">
-                <div className="stats-type-label">{type}</div>
-                <div className="stats-in">{s.in}<span className="stats-dir">IN</span></div>
-                <div className="stats-out">{s.out}<span className="stats-dir">OUT</span></div>
-                <div className="stats-total">{s.in + s.out}<span className="stats-dir">TOTAL</span></div>
+      <div className="section-label" style={{ marginBottom: 6 }}>Today — Last 24h</div>
+      <div className="kpi-cards">
+        {TYPES.map(type => {
+          const s = stats[type] || { in: 0, out: 0 }
+          return (
+            <div key={type} className={`kpi-card kpi-card-${type}`}>
+              <div className="kpi-card-name">{type}</div>
+              <div className="kpi-card-number">{s.in + s.out}</div>
+              <div className="kpi-card-sub">
+                <span className="kpi-in">{s.in} IN</span>
+                <span className="kpi-out">{s.out} OUT</span>
               </div>
-            )
-          })}
+            </div>
+          )
+        })}
 
-          <div className="stats-row stats-row-total">
-            <div className="stats-type-label">Total</div>
-            <div className="stats-in">{totalIn}<span className="stats-dir">IN</span></div>
-            <div className="stats-out">{totalOut}<span className="stats-dir">OUT</span></div>
-            <div className="stats-total">{totalIn + totalOut}<span className="stats-dir">TOTAL</span></div>
+        <div className="kpi-card kpi-card-total">
+          <div className="kpi-card-name">Total</div>
+          <div className="kpi-card-number">{totalIn + totalOut}</div>
+          <div className="kpi-card-sub">
+            <span className="kpi-in">{totalIn} IN</span>
+            <span className="kpi-out">{totalOut} OUT</span>
           </div>
         </div>
       </div>

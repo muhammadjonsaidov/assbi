@@ -101,6 +101,13 @@ export default function HeaderBar({ workerRunning, drawMode, onStart, onStop, on
 
       {error && <span className="header-error">⚠ {error}</span>}
 
+      <div className="header-nav">
+        <span className="nav-tab">Live Feed</span>
+        <span className="nav-tab active">Analytics &amp; Intelligence</span>
+        <span className="nav-tab">AI Surveillance Assistant</span>
+        <span className="nav-tab">Reports &amp; Live Stats</span>
+      </div>
+
       <div className="worker-status">
         <span className={`status-dot${workerRunning ? ' running' : ''}`} />
         <span className="status-text">
