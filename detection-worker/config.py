@@ -10,8 +10,8 @@ FRAME_SERVER_PORT = int(os.getenv("FRAME_SERVER_PORT", 5000))
 
 # ── Model / inference ─────────────────────────────────────────────────────────
 DEFAULT_MODEL   = os.getenv("MODEL_PATH", "runs/detect/runs/train/assbi_model/weights/best.pt")
-DEFAULT_FRAME_SKIP = int(os.getenv("FRAME_SKIP", 3))
-CONF_THRESHOLD  = float(os.getenv("CONF_THRESHOLD", 0.45))
+DEFAULT_FRAME_SKIP = int(os.getenv("FRAME_SKIP", 1))
+CONF_THRESHOLD  = float(os.getenv("CONF_THRESHOLD", 0.30))
 MIN_BOX_AREA    = int(os.getenv("MIN_BOX_AREA", 200))       # px² — catches distant/top-down persons
 LETTERBOX_SIZE  = int(os.getenv("LETTERBOX_SIZE", 640))
 
