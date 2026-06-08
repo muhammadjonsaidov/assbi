@@ -49,6 +49,14 @@ public class WorkerController {
     public synchronized ResponseEntity<Map<String, Object>> stop() {
         if (workerProcess != null && workerProcess.isAlive()) {
             workerProcess.destroy();
+            try {
+                if (!workerProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                    workerProcess.destroyForcibly();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                workerProcess.destroyForcibly();
+            }
             workerProcess = null;
             return ResponseEntity.ok(Map.of("status", "stopped"));
         }
@@ -56,7 +64,7 @@ public class WorkerController {
     }
 
     @GetMapping("/status")
-    public ResponseEntity<Map<String, Object>> status() {
+    public synchronized ResponseEntity<Map<String, Object>> status() {
         boolean running = workerProcess != null && workerProcess.isAlive();
         return ResponseEntity.ok(Map.of("running", running));
     }

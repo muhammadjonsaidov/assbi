@@ -38,6 +38,7 @@ export default function ChatPanel() {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ message: msg }),
       })
+      if (!res.ok) throw new Error(res.statusText)
       const data = await res.json()
       setMessages(m =>
         m.filter(x => x.id !== thinkingId).concat({

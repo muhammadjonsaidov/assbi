@@ -132,7 +132,7 @@ export default function VideoCanvas({ active, drawMode, onLineSent }) {
     // Poll /ready until Python has produced at least one frame
     pollerRef.current = setInterval(() => {
       fetch(`${config.frameServerUrl}/ready`)
-        .then(r => r.json())
+        .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
         .then(d => {
           failCount = 0
           setWorkerError(null)

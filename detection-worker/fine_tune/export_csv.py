@@ -37,11 +37,15 @@ def run(source, model_path, output_csv, conf_threshold=0.5):
             ]
             for frame_id, img_path in enumerate(images):
                 frame = cv2.imread(img_path)
+                if frame is None:
+                    continue
                 _process_frame(model, frame, frame_id, writer, conf_threshold)
 
         # Video file
         else:
             cap = cv2.VideoCapture(source)
+            if not cap.isOpened():
+                raise RuntimeError(f"Cannot open video source: {source}")
             frame_id = 0
             while cap.isOpened():
                 ret, frame = cap.read()

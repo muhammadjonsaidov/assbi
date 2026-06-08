@@ -123,14 +123,14 @@ export default function AnalyticsPanel() {
 
   const refreshLive = useCallback(() => {
     fetch(`${config.backendUrl}/api/events/counts?minutes=60`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
       .then(data => { setLiveCounts(data); setError(null) })
       .catch(e => setError(e.message))
   }, [])
 
   const refreshHourly = useCallback(() => {
     fetch(`${config.backendUrl}/api/events/hourly-summary?hours=12`)
-      .then(r => r.json())
+      .then(r => { if (!r.ok) throw new Error(r.statusText); return r.json() })
       .then(data => setHourly(data))
       .catch(() => {})
   }, [])

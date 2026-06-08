@@ -38,18 +38,21 @@ def _init_csv():
 
 def _send_loop():
     while True:
-        payload = _queue.get()
         try:
-            resp = requests.post(API_URL, json=payload, timeout=API_TIMEOUT_S)
-            resp.raise_for_status()
-        except Exception as e:
-            print(f"[{_ts()}] [publish] API error ({type(e).__name__}) — writing CSV", flush=True)
+            payload = _queue.get()
             try:
-                _fallback_csv(payload)
-            except Exception as csv_err:
-                print(f"[{_ts()}] [publish] CSV fallback failed: {csv_err}", flush=True)
-        finally:
-            _queue.task_done()
+                resp = requests.post(API_URL, json=payload, timeout=API_TIMEOUT_S)
+                resp.raise_for_status()
+            except Exception as e:
+                print(f"[{_ts()}] [publish] API error ({type(e).__name__}) — writing CSV", flush=True)
+                try:
+                    _fallback_csv(payload)
+                except Exception as csv_err:
+                    print(f"[{_ts()}] [publish] CSV fallback failed: {csv_err}", flush=True)
+            finally:
+                _queue.task_done()
+        except Exception as e:
+            print(f"[{_ts()}] [publish] loop error: {e}", flush=True)
 
 
 # Daemon publisher thread — starts automatically on import
@@ -81,7 +84,7 @@ def _fallback_csv(payload: dict):
             payload["timestamp"],
             payload["trackId"],
             payload["objectType"],
-            payload["classId"],
+            payload["objectType"],
             payload["direction"],
             payload["positionX"],
             payload["positionY"],

@@ -138,16 +138,21 @@ public class ChatbotService implements IChatbotService {
             pb.redirectInput(ProcessBuilder.Redirect.from(new java.io.File("/dev/null")));
             Process process = pb.start();
 
-            String output = new String(process.getInputStream().readAllBytes());
-            int exitCode  = process.waitFor();
+            String output;
+            try (var is = process.getInputStream()) {
+                output = new String(is.readAllBytes());
+            }
+            int exitCode = process.waitFor();
 
             if (exitCode != 0 || output.isBlank()) {
                 return "Chatbot unavailable. Check that Claude CLI is installed and authenticated.";
             }
             return output.trim();
 
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            return "Chatbot error: " + e.getMessage();
+        } catch (IOException e) {
             return "Chatbot error: " + e.getMessage();
         }
     }

@@ -77,6 +77,8 @@ class VideoSource:
     def open(self):
         self.cap = cv2.VideoCapture(self._resolved)
         if not self.cap.isOpened():
+            self.cap.release()
+            self.cap = None
             raise RuntimeError(f"Cannot open video source: {self._resolved}")
         return self
 

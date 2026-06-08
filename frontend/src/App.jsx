@@ -51,7 +51,9 @@ export default function App() {
   }
 
   const handleStop = async () => {
-    await fetch(`${config.backendUrl}/api/worker/stop`, { method: 'POST' })
+    try {
+      await fetch(`${config.backendUrl}/api/worker/stop`, { method: 'POST' })
+    } catch (_) {}
     setWorkerRunning(false)
     setDrawMode(false)
   }

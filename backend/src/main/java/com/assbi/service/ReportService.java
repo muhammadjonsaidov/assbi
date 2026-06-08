@@ -62,8 +62,8 @@ public class ReportService implements IReportService {
                     return s;
                 });
 
-            if ("IN".equals(direction))  summary.setCountIn((int) count);
-            if ("OUT".equals(direction)) summary.setCountOut((int) count);
+            if ("IN".equals(direction))  summary.setCountIn((int) Math.min(count, Integer.MAX_VALUE));
+            if ("OUT".equals(direction)) summary.setCountOut((int) Math.min(count, Integer.MAX_VALUE));
             summaryRepo.save(summary);
         }
     }
