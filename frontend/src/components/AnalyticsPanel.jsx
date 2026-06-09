@@ -1,120 +1,163 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import config from '../config'
 
-const TYPE_COLORS = {
-  car:   '#00b4d8',
-  bus:   '#00bfa5',
-  truck: '#9b4dff',
+const COLORS = { car: '#00d4f5', bus: '#00e5a0', truck: '#b46fff' }
+const TYPES  = ['car', 'bus', 'truck']
+
+function useAnimated(target, duration = 500) {
+  const [val, setVal] = useState(target)
+  const from = useRef(target)
+  const raf  = useRef(null)
+  useEffect(() => {
+    const start = from.current, end = target
+    if (start === end) return
+    const t0 = performance.now()
+    cancelAnimationFrame(raf.current)
+    const tick = (now) => {
+      const p = Math.min((now - t0) / duration, 1)
+      const e = 1 - Math.pow(1 - p, 3)
+      setVal(Math.round(start + (end - start) * e))
+      if (p < 1) raf.current = requestAnimationFrame(tick)
+      else from.current = end
+    }
+    raf.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf.current)
+  }, [target, duration])
+  return val
 }
-const TYPES = ['car', 'bus', 'truck']
 
-// ── Donut pie chart ────────────────────────────────────────────────────────────
-
-function PieChart({ counts }) {
+function DonutChart({ counts }) {
   const totals = TYPES.map(t => (counts[`${t}_IN`] || 0) + (counts[`${t}_OUT`] || 0))
-  const total  = totals.reduce((s, v) => s + v, 0)
+  const grand  = totals.reduce((s, v) => s + v, 0)
 
-  if (total === 0) {
-    return <p className="hint-text" style={{ marginTop: 24 }}>No crossings in last 60 min</p>
-  }
+  if (grand === 0) return <p className="ana-empty">No crossings in last 60 min</p>
 
-  const cx = 90, cy = 90, R = 72, ri = 40
+  const cx = 70, cy = 70, R = 56, ri = 30, gap = 0.05
   let angle = -Math.PI / 2
 
   const slices = TYPES.map((type, i) => {
-    const sweep = totals[i] / total * 2 * Math.PI
-    const a0 = angle
-    const a1 = angle + sweep
-    angle = a1
+    const sweep = totals[i] / grand * 2 * Math.PI - gap
+    const a0 = angle + gap / 2
+    const a1 = angle + gap / 2 + sweep
+    angle += totals[i] / grand * 2 * Math.PI
     const large = sweep > Math.PI ? 1 : 0
     const d = [
-      `M ${cx + R * Math.cos(a0)} ${cy + R * Math.sin(a0)}`,
-      `A ${R} ${R} 0 ${large} 1 ${cx + R * Math.cos(a1)} ${cy + R * Math.sin(a1)}`,
-      `L ${cx + ri * Math.cos(a1)} ${cy + ri * Math.sin(a1)}`,
-      `A ${ri} ${ri} 0 ${large} 0 ${cx + ri * Math.cos(a0)} ${cy + ri * Math.sin(a0)}`,
+      `M ${(cx + R * Math.cos(a0)).toFixed(2)} ${(cy + R * Math.sin(a0)).toFixed(2)}`,
+      `A ${R} ${R} 0 ${large} 1 ${(cx + R * Math.cos(a1)).toFixed(2)} ${(cy + R * Math.sin(a1)).toFixed(2)}`,
+      `L ${(cx + ri * Math.cos(a1)).toFixed(2)} ${(cy + ri * Math.sin(a1)).toFixed(2)}`,
+      `A ${ri} ${ri} 0 ${large} 0 ${(cx + ri * Math.cos(a0)).toFixed(2)} ${(cy + ri * Math.sin(a0)).toFixed(2)}`,
       'Z',
     ].join(' ')
-    return { type, d, pct: Math.round(totals[i] / total * 100), count: totals[i] }
+    return { type, d, pct: Math.round(totals[i] / grand * 100), count: totals[i] }
   })
 
   return (
-    <svg viewBox="0 0 180 180" style={{ width: '100%', height: '100%', display: 'block' }}>
-      {slices.map(s => (
-        <path key={s.type} d={s.d} fill={TYPE_COLORS[s.type]} opacity="0.9" />
-      ))}
-      <text x={cx} y={cy - 8} textAnchor="middle" fontSize="22" fill="#e2e8f0" fontWeight="bold">
-        {total}
-      </text>
-      <text x={cx} y={cy + 10} textAnchor="middle" fontSize="9" fill="#4a5568">crossings</text>
-    </svg>
+    <div className="ana-donut-wrap">
+      <svg viewBox="0 0 140 140" className="ana-donut-svg">
+        <circle cx={cx} cy={cy} r={(R + ri) / 2} fill="none"
+          stroke="#0a1625" strokeWidth={R - ri + 2} />
+        {slices.map(s => (
+          <path key={s.type} d={s.d} fill={COLORS[s.type]} />
+        ))}
+        <text x={cx} y={cy - 7} textAnchor="middle" className="ana-donut-num">{grand}</text>
+        <text x={cx} y={cy + 9} textAnchor="middle" className="ana-donut-sub">crossings</text>
+      </svg>
+      <div className="ana-donut-legend">
+        {slices.map(s => (
+          <div key={s.type} className="ana-legend-row">
+            <span className="ana-legend-dot" style={{ background: COLORS[s.type] }} />
+            <span className="ana-legend-type">{s.type}</span>
+            <span className="ana-legend-pct" style={{ color: COLORS[s.type] }}>{s.pct}%</span>
+            <span className="ana-legend-count">{s.count}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
-// ── Line chart ─────────────────────────────────────────────────────────────────
+function smoothLine(pts) {
+  if (pts.length < 2) return ''
+  let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i - 1], c = pts[i], mx = (p.x + c.x) / 2
+    d += ` C ${mx.toFixed(1)} ${p.y.toFixed(1)} ${mx.toFixed(1)} ${c.y.toFixed(1)} ${c.x.toFixed(1)} ${c.y.toFixed(1)}`
+  }
+  return d
+}
 
 function LineChart({ hourly }) {
-  if (!hourly || hourly.length === 0) {
-    return <p className="hint-text" style={{ marginTop: 24 }}>No hourly data</p>
-  }
+  if (!hourly || hourly.length < 2) return <p className="ana-empty">No hourly data</p>
 
-  const W = 300, H = 140, PAD = { top: 10, right: 10, bottom: 24, left: 28 }
-  const innerW = W - PAD.left - PAD.right
-  const innerH = H - PAD.top - PAD.bottom
+  const W = 280, H = 110
+  const P = { top: 8, right: 6, bottom: 20, left: 24 }
+  const iW = W - P.left - P.right
+  const iH = H - P.top  - P.bottom
+  const n  = hourly.length
 
-  const totals = hourly.map(h => h.carIn + h.carOut + h.busIn + h.busOut + h.truckIn + h.truckOut)
-  const maxVal = Math.max(...totals, 1)
-  const n = hourly.length
-
-  const pts = totals.map((v, i) => ({
-    x: PAD.left + (i / (n - 1 || 1)) * innerW,
-    y: PAD.top  + (1 - v / maxVal) * innerH,
+  const series = TYPES.map(type => ({
+    type,
+    vals: hourly.map(h => (h[`${type}In`] || 0) + (h[`${type}Out`] || 0)),
   }))
 
-  const pathD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ')
-  const areaD = pathD + ` L ${pts[pts.length-1].x.toFixed(1)} ${(PAD.top + innerH).toFixed(1)} L ${pts[0].x.toFixed(1)} ${(PAD.top + innerH).toFixed(1)} Z`
+  const maxVal = Math.max(...series.flatMap(s => s.vals), 1)
+  const toPoints = vals => vals.map((v, i) => ({
+    x: P.left + (i / (n - 1)) * iW,
+    y: P.top  + (1 - v / maxVal) * iH,
+  }))
 
-  const tickCount = 4
-  const ticks = Array.from({ length: tickCount + 1 }, (_, i) => Math.round(maxVal * i / tickCount))
-
-  const labelEvery = Math.ceil(n / 6)
+  const gridVals = [0, Math.round(maxVal * 0.5), maxVal]
+  const labelEvery = Math.max(1, Math.ceil(n / 5))
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', display: 'block' }}>
-      {ticks.map(tick => {
-        const y = PAD.top + (1 - tick / maxVal) * innerH
+      <defs>
+        {TYPES.map(type => (
+          <linearGradient key={type} id={`ag-${type}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stopColor={COLORS[type]} stopOpacity="0.18" />
+            <stop offset="100%" stopColor={COLORS[type]} stopOpacity="0"    />
+          </linearGradient>
+        ))}
+      </defs>
+
+      {gridVals.map(v => {
+        const y = P.top + (1 - v / maxVal) * iH
         return (
-          <g key={tick}>
-            <line x1={PAD.left} x2={PAD.left + innerW} y1={y} y2={y} stroke="#0e1e36" strokeWidth="1" />
-            <text x={PAD.left - 4} y={y + 4} textAnchor="end" fontSize="8" fill="#2a4060">{tick}</text>
+          <g key={v}>
+            <line x1={P.left} x2={P.left + iW} y1={y} y2={y}
+              stroke="#0a1828" strokeWidth="1" />
+            {v > 0 && (
+              <text x={P.left - 3} y={y + 3} textAnchor="end" fontSize="7" fill="#1e3050">{v}</text>
+            )}
           </g>
         )
       })}
 
       {hourly.map((h, i) => {
         if (i % labelEvery !== 0) return null
-        const x = PAD.left + (i / (n - 1 || 1)) * innerW
-        const label = h.hour ? h.hour.slice(11, 16) : ''
+        const x = P.left + (i / (n - 1)) * iW
         return (
-          <text key={i} x={x} y={H - 4} textAnchor="middle" fontSize="8" fill="#2a4060">{label}</text>
+          <text key={i} x={x} y={H - 4} textAnchor="middle" fontSize="7" fill="#1e3050">
+            {h.hour ? h.hour.slice(11, 16) : ''}
+          </text>
         )
       })}
 
-      <defs>
-        <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#00b4d8" stopOpacity="0.3" />
-          <stop offset="100%" stopColor="#00b4d8" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={areaD} fill="url(#lineGrad)" />
-      <path d={pathD} fill="none" stroke="#00b4d8" strokeWidth="1.5" />
-      {pts.map((p, i) => (
-        <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#00b4d8" />
-      ))}
+      {series.map(({ type, vals }) => {
+        const pts  = toPoints(vals)
+        const line = smoothLine(pts)
+        const last = `L ${pts[pts.length-1].x.toFixed(1)} ${(P.top + iH).toFixed(1)} L ${pts[0].x.toFixed(1)} ${(P.top + iH).toFixed(1)} Z`
+        return (
+          <g key={type}>
+            <path d={line + last} fill={`url(#ag-${type})`} />
+            <path d={line} fill="none" stroke={COLORS[type]} strokeWidth="1.5" strokeLinejoin="round" />
+            <circle cx={pts[pts.length-1].x} cy={pts[pts.length-1].y} r="2.5" fill={COLORS[type]} />
+          </g>
+        )
+      })}
     </svg>
   )
 }
-
-// ── Main panel ─────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPanel() {
   const [liveCounts, setLiveCounts] = useState({})
@@ -147,50 +190,71 @@ export default function AnalyticsPanel() {
   const totalOut = TYPES.reduce((s, t) => s + (liveCounts[`${t}_OUT`] || 0), 0)
   const total    = totalIn + totalOut
 
+  const animTotal = useAnimated(total)
+  const animIn    = useAnimated(totalIn)
+  const animOut   = useAnimated(totalOut)
+
+  const inPct  = total > 0 ? Math.round(totalIn  / total * 100) : 50
+  const outPct = total > 0 ? Math.round(totalOut / total * 100) : 50
+
   return (
     <div className="analytics-body">
 
-      {error && <p className="error-text">Backend unreachable: {error}</p>}
+      {error && (
+        <div className="ana-error">
+          <span className="ana-error-icon">⬥</span>
+          Backend unreachable: {error}
+        </div>
+      )}
 
-      <div className="analytics-kpis">
-        <div className="analytics-kpi">
-          <div className="analytics-kpi-value analytics-kpi-total">{total}</div>
-          <div className="analytics-kpi-label">Total (1h)</div>
+      <div className="ana-kpis">
+        <div className="ana-kpi ana-kpi-total">
+          <div className="ana-kpi-num">{animTotal.toLocaleString()}</div>
+          <div className="ana-kpi-lbl">Total · 1H</div>
         </div>
-        <div className="analytics-kpi">
-          <div className="analytics-kpi-value analytics-kpi-in">{totalIn}</div>
-          <div className="analytics-kpi-label">IN (1h)</div>
+        <div className="ana-kpi ana-kpi-in">
+          <div className="ana-kpi-num">{animIn.toLocaleString()}</div>
+          <div className="ana-kpi-lbl">In · 1H</div>
         </div>
-        <div className="analytics-kpi">
-          <div className="analytics-kpi-value analytics-kpi-out">{totalOut}</div>
-          <div className="analytics-kpi-label">OUT (1h)</div>
+        <div className="ana-kpi ana-kpi-out">
+          <div className="ana-kpi-num">{animOut.toLocaleString()}</div>
+          <div className="ana-kpi-lbl">Out · 1H</div>
         </div>
       </div>
 
-      <div className="section-label">Live Distribution — Last 60 min</div>
+      <div className="ana-flow">
+        <div className="ana-flow-bar">
+          <div className="ana-flow-in"  style={{ width: `${inPct}%`  }} />
+          <div className="ana-flow-out" style={{ width: `${outPct}%` }} />
+        </div>
+        <div className="ana-flow-labels">
+          <span style={{ color: '#00c853' }}>▶ IN {inPct}%</span>
+          <span style={{ color: '#f59e0b' }}>OUT {outPct}% ◀</span>
+        </div>
+      </div>
 
-      <div className="analytics-charts">
-        <div className="chart-wrap" style={{ flex: '0 0 180px' }}>
-          <div className="pie-legend">
-            {TYPES.map(t => (
-              <span key={t} style={{ color: TYPE_COLORS[t], fontSize: 9 }}>
-                ■ {t}
-              </span>
-            ))}
-          </div>
-          <div style={{ flex: 1, minHeight: 0 }}>
-            <PieChart counts={liveCounts} />
-          </div>
+      <div className="ana-charts">
+
+        <div className="ana-chart-box ana-chart-donut">
+          <div className="ana-chart-title">Distribution · 60min</div>
+          <DonutChart counts={liveCounts} />
         </div>
 
-        <div className="chart-wrap" style={{ flex: 1 }}>
-          <div className="section-label" style={{ marginBottom: 4 }}>Hourly — Last 12h</div>
+        <div className="ana-chart-box ana-chart-line">
+          <div className="ana-chart-title ana-chart-title-row">
+            <span>Hourly Trend · 12H</span>
+            <span className="ana-line-legend">
+              {TYPES.map(t => (
+                <span key={t} style={{ color: COLORS[t] }}>■ {t}</span>
+              ))}
+            </span>
+          </div>
           <div style={{ flex: 1, minHeight: 0 }}>
             <LineChart hourly={hourly} />
           </div>
         </div>
-      </div>
 
+      </div>
     </div>
   )
 }
